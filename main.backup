@@ -1,0 +1,112 @@
+package main
+
+import (
+	"bufio"
+	"fmt"
+	"log"
+	"os"
+	// "go.mongodb.org/mongo-driver/bson"
+	"regexp"
+	"strconv"
+	"encoding/json"
+)
+
+// Formatter for mongodb v3.2
+// https://docs.mongodb.com/v3.2/replication/
+type MongoLog struct {
+	timestamp string
+	severity  string
+	component string
+	context   string
+	message   string
+}
+
+func reSubMatchMap(r *regexp.Regexp, str string) map[string]string {
+	match := r.FindStringSubmatch(str)
+	subMatchMap := make(map[string]string)
+	for i, name := range r.SubexpNames() {
+		if i != 0 {
+			subMatchMap[name] = match[i]
+		}
+	}
+	return subMatchMap
+}
+
+// Extract interested label from message based on specific context
+// TODO: convert this into config
+func GetLabelsMango(message string, component string) map[string]interface{} {
+	labels := map[string]interface{}{}
+
+	fmt.Println(component)
+	switch component {
+	case "COMMAND":
+		// get dbname and command type at the begining of message
+		match := regexp.MustCompile(`^command\s+(?P<dbname>.*?)\s+command:\s+(?P<command>.*?)\s+{`).FindStringSubmatch(message)
+		labels["dbname"] = match[1]
+		labels["command"] = match[2]
+		// get protocal and time at the end of message
+		match = regexp.MustCompile(`protocol\:(?P<protocal>.*?)\s+(?P<time>\d+)ms$`).FindStringSubmatch(message)
+		labels["protocal"] = match[1]
+		if time, err := strconv.ParseFloat(match[2], 32); err != nil {
+			log.Fatal("Cannot parse time field to float32!")
+		} else {
+			labels["time"] = time
+		}
+		// get plan summary
+		// TODO: try to parse the inner json-like body to json
+		match = regexp.MustCompile(`planSummary:\s+(?P<plan>.*?)\s+{`).FindStringSubmatch(message)
+		labels["plan"] = match[1]
+	}
+	return labels
+}
+
+// Convert msg in string to MangoLog format
+// <timestamp> <severity> <component> [<context>] <message>
+func MangoFormatter(msg string) (*MongoLog, map[string]interface{}) {
+	regex := `(?P<timestamp>\d{4}-\d{2}-\d{2}T\d{2}\:\d{2}\:\d{2}.\d+(?:\+|-)\d+)` // for timestamp in iso8601-local, which is default
+	regex += `\s+` + `(?P<serverity>(?:F|E|W|I|D))`
+	regex += `\s+` + `(?P<component>(?:COMMAND|NETWORK|)?)` // TODO: add other component type
+	regex += `\s+` + `(?P<context>\[.*?\])`
+	regex += `\s+` + `(?P<message>.*$)`
+	// fmt.Println(regex)
+	re := regexp.MustCompile(regex)
+	matchMap := reSubMatchMap(re, msg)
+
+	// Use relect to fill up fields
+	mongoLog := MongoLog{}
+
+	mongoLog.timestamp = matchMap["timestamp"]
+	mongoLog.severity = matchMap["serverity"]
+	mongoLog.component = matchMap["component"]
+	mongoLog.context = matchMap["context"]
+	mongoLog.message = matchMap["message"]
+
+	labels := GetLabelsMango(mongoLog.message, mongoLog.component)
+
+	fmt.Printf("Labels: %+v\n", labels)
+	fmt.Printf("MangoLog: %+v\n", mongoLog)
+	return &mongoLog, labels
+}
+
+func main() {
+	file, err := os.Open("mango.log")
+
+	if err != nil {
+		log.Fatal("Failed to Open")
+	}
+
+	scanner := bufio.NewScanner(file)
+
+	scanner.Split(bufio.ScanLines)
+	var text []string
+
+	for scanner.Scan() {
+		text = append(text, scanner.Text())
+	}
+
+	for _, line := range text {
+		// fmt.Println(line)
+		MangoFormatter(line)
+	}
+}
+
