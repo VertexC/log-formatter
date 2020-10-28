@@ -2,13 +2,12 @@ package formatter
 
 import (
 	"fmt"
+	"log"
 	"regexp"
 	"strconv"
-	"log"
 )
 
 var Version = "0.0.0"
-
 
 // MongoLog is a template which consists components of mongdb log messages
 // https://docs.mongodb.com/v3.2/replication/
@@ -54,17 +53,16 @@ func GetLabelsMango(message string, component string) map[string]interface{} {
 		// TODO: try to parse the inner json-like body to json
 		// planSummary(optional)
 		match = regexp.MustCompile(`planSummary:\s+(?P<plan>.*?)\s+{`).FindStringSubmatch(message)
-		if len(match) != 0 { 
+		if len(match) != 0 {
 			labels["plan"] = match[1]
 		}
 	}
 	return labels
 }
 
-
 // MongoFormatter designed to parse mongodb log message (from 3.2 to 4.3)
-// TODO: validate the ealieast version that fits 
-// it returns a mongo 
+// TODO: validate the ealieast version that fits
+// it returns a mongo
 // <timestamp> <severity> <component> [<context>] <message>
 func MongoFormatter(msg string) (*MongoLog, map[string]interface{}) {
 	regex := `(?P<timestamp>\d{4}-\d{2}-\d{2}T\d{2}\:\d{2}\:\d{2}.\d+(?:\+|-)\d+)` // for timestamp in iso8601-local, which is default

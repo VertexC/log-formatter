@@ -1,0 +1,15 @@
+output:
+  host: "<input_host>"
+  index: "<some_index>"
+input:
+  host: "<output_host>"
+  quries:
+    - index: "<some_index>"
+      body: '{
+        "query":{
+          "match": {
+            "match_all": {}
+          }
+        } 
+      }'
+      formatter: "mongodb"
