@@ -4,10 +4,21 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"log"
-	"strings"
-
 	"github.com/elastic/go-elasticsearch/v8"
+	"io"
+	"log"
+	"os"
+	"path"
+	"strings"
+)
+
+var (
+	Trace   *log.Logger
+	Info    *log.Logger
+	Warning *log.Logger
+	Error   *log.Logger
+	Debug   *log.Logger
+	Default *log.Logger
 )
 
 type Query struct {
@@ -21,57 +32,78 @@ type InputConfig struct {
 	Quries []Query `yaml:"quries"`
 }
 
+func Init() {
+	file, err := os.OpenFile(path.Join("logs", "runtime.log"),
+		os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		log.Fatalln("Failed to open error log file:", err)
+	}
+
+	Trace = log.New(io.MultiWriter(file, os.Stdout),
+		"[INPUT TRACE]: ",
+		log.Ldate|log.Ltime|log.Lshortfile)
+
+	Info = log.New(io.MultiWriter(file, os.Stdout),
+		"[INPUT INFO]: ",
+		log.Ldate|log.Ltime|log.Lshortfile)
+
+	Warning = log.New(io.MultiWriter(file, os.Stdout),
+		"[INPUT WARNING]: ",
+		log.Ldate|log.Ltime|log.Lshortfile)
+
+	Error = log.New(io.MultiWriter(file, os.Stderr),
+		"[INPUT ERROR]: ",
+		log.Ldate|log.Ltime|log.Lshortfile)
+
+	Debug = log.New(os.Stdout,
+		"[INPUT DEBUG]: ",
+		log.Ldate|log.Ltime|log.Lshortfile)
+
+	Default = log.New(io.MultiWriter(file, os.Stdout), "", 0)
+}
+
 func EsSearch(input InputConfig, recordCh chan []interface{}, inLastJobCh chan int) {
-	log.SetFlags(0)
+	var r map[string]interface{}
 
-	var (
-		r map[string]interface{}
-	)
-
-	// Initialize a client with the default settings.
-	//
-	// An `ELASTICSEARCH_URL` environment variable will be used when exported.
-	//
+	// Initialize a client
 	cfg := elasticsearch.Config{
 		Addresses: []string{
 			input.Host,
 		},
-		// ...
 	}
 	es, err := elasticsearch.NewClient(cfg)
 	if err != nil {
-		log.Fatalf("Error creating the client: %s", err)
+		Error.Fatalf("Error creating the client: %s", err)
 	}
 
-	// 1. Get cluster info
-	//
+	// Get cluster info
 	res, err := es.Info()
 	if err != nil {
-		log.Fatalf("Error getting response: %s", err)
+		Error.Fatalf("Error getting response: %s", err)
 	}
 	defer res.Body.Close()
 	// Check response status
 	if res.IsError() {
-		log.Fatalf("Error: %s", res.String())
+		Error.Fatalf("Error: %s", res.String())
 	}
 	// Deserialize the response into a map.
 	if err := json.NewDecoder(res.Body).Decode(&r); err != nil {
-		log.Fatalf("Error parsing the response body: %s", err)
+		Error.Fatalf("Error parsing the response body: %s", err)
 	}
 	// Print client and server version numbers.
-	log.Printf("Client: %s", elasticsearch.Version)
-	log.Printf("Server: %s", r["version"].(map[string]interface{})["number"])
-	log.Println(strings.Repeat("~", 37))
+	Info.Printf("Client: %s\n", elasticsearch.Version)
+	Info.Printf("Server: %s\n", r["version"].(map[string]interface{})["number"])
+	Default.Println(strings.Repeat("~", 37))
 
 	// Build the request body.
-	jobId := 0
+	jobID := 0
 	for _, query := range input.Quries {
 		var buf bytes.Buffer
 
 		if json.Valid([]byte(query.Body)) {
 			buf.WriteString(query.Body)
 		} else {
-			log.Fatalf("Error encoding query: %s\n", err)
+			Error.Fatalf("Error encoding query: %s\n", err)
 		}
 
 		// Perform the search request.
@@ -83,18 +115,18 @@ func EsSearch(input InputConfig, recordCh chan []interface{}, inLastJobCh chan i
 			es.Search.WithPretty(),
 		)
 		if err != nil {
-			log.Fatalf("Error getting response: %s", err)
+			Error.Fatalf("Error getting response: %s", err)
 		}
 		defer res.Body.Close()
 
 		if res.IsError() {
 			var e map[string]interface{}
 			if err := json.NewDecoder(res.Body).Decode(&e); err != nil {
-				log.Println(res.Body)
-				log.Fatalf("Error parsing the response body: %s", err)
+				Error.Println(res.Body)
+				Error.Fatalf("Error parsing the response body: %s", err)
 			} else {
 				// Print the response status and error information.
-				log.Fatalf("[%s] %s: %s",
+				Error.Fatalf("[%s] %s: %s",
 					res.Status(),
 					e["error"].(map[string]interface{})["type"],
 					e["error"].(map[string]interface{})["reason"],
@@ -103,10 +135,10 @@ func EsSearch(input InputConfig, recordCh chan []interface{}, inLastJobCh chan i
 		}
 
 		if err := json.NewDecoder(res.Body).Decode(&r); err != nil {
-			log.Fatalf("Error parsing the response body: %s", err)
+			Error.Fatalf("Error parsing the response body: %s", err)
 		}
 		// Print the response status, number of results, and request duration.
-		log.Printf(
+		Trace.Printf(
 			"[%s] %d hits; took: %dms",
 			res.Status(),
 			int(r["hits"].(map[string]interface{})["total"].(map[string]interface{})["value"].(float64)),
@@ -114,14 +146,13 @@ func EsSearch(input InputConfig, recordCh chan []interface{}, inLastJobCh chan i
 		)
 		// Print the ID and document source for each hit.
 		for i, hit := range r["hits"].(map[string]interface{})["hits"].([]interface{}) {
-			log.Printf("[Return Id %d] * ID=%s, %s", i, hit.(map[string]interface{})["_id"], hit.(map[string]interface{})["_source"])
+			Trace.Printf("Return Id %d * ID=%s, %s", i, hit.(map[string]interface{})["_id"], hit.(map[string]interface{})["_source"])
 		}
 
-		log.Println(strings.Repeat("=", 37))
-		log.Printf("%+v\n", r)
+		Trace.Println(strings.Repeat("=", 37))
 
 		recordCh <- r["hits"].(map[string]interface{})["hits"].([]interface{})
-		jobId++
+		jobID++
 	}
-	inLastJobCh <- jobId
+	inLastJobCh <- jobID
 }

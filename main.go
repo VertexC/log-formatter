@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"log"
 
-	"github.com/VertexC/log-formatter/formatter"
 	"github.com/VertexC/log-formatter/input"
 	"github.com/VertexC/log-formatter/output"
 )
@@ -33,11 +32,13 @@ func main() {
 
 	config := loadConfig(configFile)
 	fmt.Printf("%+v\n", *config)
-	fmt.Println(formatter.Version)
 
 	records := make(chan []interface{})
 	inLastJobCh := make(chan int)
 	outJobCh := make(chan int)
+
+	input.Init()
+	output.Init()
 
 	go input.EsSearch(config.Input, records, inLastJobCh)
 	go output.EsUpdate(config.Output, records, outJobCh)

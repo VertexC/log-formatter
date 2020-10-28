@@ -3,9 +3,11 @@ package output
 import (
 	"context"
 	"encoding/json"
-	"fmt"
+	"io"
 	"log"
 	"math/rand"
+	"os"
+	"path"
 	"strconv"
 	"strings"
 
@@ -15,16 +17,51 @@ import (
 	"github.com/elastic/go-elasticsearch/v8/esapi"
 )
 
+var (
+	Trace   *log.Logger
+	Info    *log.Logger
+	Warning *log.Logger
+	Error   *log.Logger
+	Debug   *log.Logger
+	Default *log.Logger
+)
+
 type OutputConfig struct {
 	Host  string `yaml:"host"`
 	Index string `yaml:"index"`
 }
 
+func Init() {
+	file, err := os.OpenFile(path.Join("logs", "runtime.log"),
+		os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		log.Fatalln("Failed to open error log file:", err)
+	}
+
+	Trace = log.New(io.MultiWriter(file, os.Stdout),
+		"[OUTPUT TRACE]: ",
+		log.Ldate|log.Ltime|log.Lshortfile)
+
+	Info = log.New(io.MultiWriter(file, os.Stdout),
+		"[OUTPUT INFO]: ",
+		log.Ldate|log.Ltime|log.Lshortfile)
+
+	Warning = log.New(io.MultiWriter(file, os.Stdout),
+		"[OUTPUT WARNING]: ",
+		log.Ldate|log.Ltime|log.Lshortfile)
+
+	Error = log.New(io.MultiWriter(file, os.Stderr),
+		"[OUTPUT ERROR]: ",
+		log.Ldate|log.Ltime|log.Lshortfile)
+
+	Debug = log.New(os.Stdout,
+		"[OUTPUT DEBUG]: ",
+		log.Ldate|log.Ltime|log.Lshortfile)
+
+	Default = log.New(io.MultiWriter(file, os.Stdout), "", 0)
+}
+
 func EsUpdate(output OutputConfig, recordCh chan []interface{}, outJobCh chan int) {
-
-	// Allow for custom formatting of log output
-	log.SetFlags(0)
-
 	// Create a context object for the API calls
 	ctx := context.Background()
 
@@ -39,17 +76,17 @@ func EsUpdate(output OutputConfig, recordCh chan []interface{}, outJobCh chan in
 	client, err := elasticsearch.NewClient(cfg)
 
 	if err != nil {
-		fmt.Println("Elasticsearch connection error:", err)
+		Error.Fatalln("Elasticsearch connection error:", err)
 	}
 
 	// Have the client instance return a response
 	if res, err := client.Info(); err != nil {
-		log.Fatalf("client.Info() ERROR:", err)
+		Error.Fatalln("client.Info() ERROR:", err)
 	} else {
-		log.Printf("client response:", res)
+		Info.Println("client response:", res)
 	}
 
-	jobId := 0
+	jobID := 0
 	for {
 		records := <-recordCh
 		for _, record := range records {
@@ -65,13 +102,14 @@ func EsUpdate(output OutputConfig, recordCh chan []interface{}, outJobCh chan in
 				log.Fatal("Failed to convert to json:", err)
 			}
 			// FIXME: change documentId as automatically genrated
-			docId := rand.Int()
+			// or maybe use same Id as input
+			docID := rand.Int()
 
-			fmt.Println(string(body))
+			Info.Println(string(body))
 			// Instantiate a request object
 			req := esapi.IndexRequest{
 				Index:      "bchen_playground",
-				DocumentID: strconv.Itoa(docId),
+				DocumentID: strconv.Itoa(docID),
 				Body:       strings.NewReader(string(body)),
 				Refresh:    "true",
 			}
@@ -79,29 +117,29 @@ func EsUpdate(output OutputConfig, recordCh chan []interface{}, outJobCh chan in
 			// Return an API response object from request
 			res, err := req.Do(ctx, client)
 			if err != nil {
-				log.Fatalf("IndexRequest ERROR: %s", err)
+				log.Fatalf("IndexRequest ERROR: %s\n", err)
 			}
 			defer res.Body.Close()
 
 			if res.IsError() {
-				log.Printf("%s ERROR indexing document ID=%d", res.Status(), docId)
+				Error.Printf("%s ERROR indexing document ID=%d\n", res.Status(), docID)
 			} else {
 				// Deserialize the response into a map.
 				var resMap map[string]interface{}
 				if err := json.NewDecoder(res.Body).Decode(&resMap); err != nil {
-					log.Printf("Error parsing the response body: %s", err)
+					Error.Printf("Error parsing the response body: %s\n", err)
 				} else {
-					log.Printf("\nIndexRequest() RESPONSE:")
+					Trace.Printf("IndexRequest() RESPONSE:")
 					// Print the response status and indexed document version.
-					fmt.Println("Status:", res.Status())
-					fmt.Println("Result:", resMap["result"])
-					fmt.Println("Version:", int(resMap["_version"].(float64)))
-					fmt.Println("resMap:", resMap)
-					fmt.Println("\n")
+					Trace.Println("Status:", res.Status())
+					Trace.Println("Result:", resMap["result"])
+					Trace.Println("Version:", int(resMap["_version"].(float64)))
+					Trace.Println("resMap:", resMap)
+					Trace.Println("\n")
 				}
 			}
 		}
-		jobId++
-		outJobCh <- jobId
+		jobID++
+		outJobCh <- jobID
 	}
 }

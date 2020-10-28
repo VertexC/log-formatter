@@ -7,8 +7,6 @@ import (
 	"strconv"
 )
 
-var Version = "0.0.0"
-
 // MongoLog is a template which consists components of mongdb log messages
 // https://docs.mongodb.com/v3.2/replication/
 type MongoLog struct {
