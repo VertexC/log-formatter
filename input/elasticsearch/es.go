@@ -67,7 +67,6 @@ func Execute(input EsConfig, recordCh chan []interface{}, inLastJobCh chan int) 
 
 	var r map[string]interface{}
 
-
 	// Initialize a client
 	cfg := elasticsearch.Config{
 		Addresses: []string{
@@ -148,13 +147,15 @@ func Execute(input EsConfig, recordCh chan []interface{}, inLastJobCh chan int) 
 			int(r["took"].(float64)),
 		)
 		// Print the ID and document source for each hit.
+		msgs := []interface{} {}
 		for i, hit := range r["hits"].(map[string]interface{})["hits"].([]interface{}) {
 			Trace.Printf("Return Id %d * ID=%s, %s", i, hit.(map[string]interface{})["_id"], hit.(map[string]interface{})["_source"])
+			msgs = append(msgs, hit.(map[string]interface{})["_source"])
 		}
 
 		Trace.Println(strings.Repeat("=", 37))
 
-		recordCh <- r["hits"].(map[string]interface{})["hits"].([]interface{})
+		recordCh <- msgs
 		jobID++
 	}
 	inLastJobCh <- jobID

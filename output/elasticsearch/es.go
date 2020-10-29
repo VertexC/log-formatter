@@ -62,7 +62,6 @@ func Init() {
 }
 
 func Execute(output EsConfig, recordCh chan []interface{}, outJobCh chan int) {
-	
 	Init()
 	
 	// Create a context object for the API calls
@@ -94,7 +93,7 @@ func Execute(output EsConfig, recordCh chan []interface{}, outJobCh chan int) {
 		records := <-recordCh
 		for _, record := range records {
 			// Marshal Elasticsearch document struct objects to JSON string
-			sourceMap := record.(map[string]interface{})["_source"].(map[string]interface{})
+			sourceMap := record.(map[string]interface{})
 			message := sourceMap["message"].(string)
 			_, labels, err := formatter.MongoFormatter(message)
 			if err != nil {
