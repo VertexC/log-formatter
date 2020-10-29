@@ -1,4 +1,4 @@
-package input
+package elasticsearch
 
 import (
 	"bytes"
@@ -27,7 +27,7 @@ type Query struct {
 	Formatter string `yaml:"formatter"`
 }
 
-type InputConfig struct {
+type EsConfig struct {
 	Host   string  `yaml:"host"`
 	Quries []Query `yaml:"quries"`
 }
@@ -62,8 +62,11 @@ func Init() {
 	Default = log.New(io.MultiWriter(file, os.Stdout), "", 0)
 }
 
-func EsSearch(input InputConfig, recordCh chan []interface{}, inLastJobCh chan int) {
+func Execute(input EsConfig, recordCh chan []interface{}, inLastJobCh chan int) {
+	Init()
+
 	var r map[string]interface{}
+
 
 	// Initialize a client
 	cfg := elasticsearch.Config{
@@ -103,7 +106,7 @@ func EsSearch(input InputConfig, recordCh chan []interface{}, inLastJobCh chan i
 		if json.Valid([]byte(query.Body)) {
 			buf.WriteString(query.Body)
 		} else {
-			Error.Fatalf("Error encoding query: %s\n", err)
+			Error.Fatalf("Error encoding query %s to json\n", query.Body)
 		}
 
 		// Perform the search request.

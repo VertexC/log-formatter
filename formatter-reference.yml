@@ -1,15 +1,23 @@
+# Elastic Search Input Output Only 
 output:
-  host: "<input_host>"
-  index: "<some_index>"
+  target: "elasticsearch"
+  elasticsearch:
+    host: "<host>"
+    index: "<index>"
 input:
-  host: "<output_host>"
-  quries:
-    - index: "<some_index>"
-      body: '{
-        "query":{
-          "match": {
-            "match_all": {}
+  target: "elasticsearch"
+  elasticsearch:
+    host: "<host>"
+    quries:
+      - index: "<index>"
+        body: '{
+          "from":0,
+          "size":100,
+          "query":{
+            "match": {
+              "match_all": {}
+            }
           }
-        } 
-      }'
-      formatter: "mongodb"
+        }'
+        formatter: "mongodb"
+      

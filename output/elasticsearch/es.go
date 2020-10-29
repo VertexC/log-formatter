@@ -1,4 +1,4 @@
-package output
+package elasticsearch
 
 import (
 	"context"
@@ -26,7 +26,7 @@ var (
 	Default *log.Logger
 )
 
-type OutputConfig struct {
+type EsConfig struct {
 	Host  string `yaml:"host"`
 	Index string `yaml:"index"`
 }
@@ -61,7 +61,10 @@ func Init() {
 	Default = log.New(io.MultiWriter(file, os.Stdout), "", 0)
 }
 
-func EsUpdate(output OutputConfig, recordCh chan []interface{}, outJobCh chan int) {
+func Execute(output EsConfig, recordCh chan []interface{}, outJobCh chan int) {
+	
+	Init()
+	
 	// Create a context object for the API calls
 	ctx := context.Background()
 

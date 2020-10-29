@@ -11,8 +11,8 @@ import (
 )
 
 type Config struct {
-	Output output.OutputConfig `yaml:"output"`
-	Input  input.InputConfig   `yaml:"input"`
+	OutCfg output.Config `yaml:"output"`
+	InCfg  input.Config  `yaml:"input"`
 }
 
 func loadConfig(configFile string) *Config {
@@ -27,6 +27,10 @@ func loadConfig(configFile string) *Config {
 	return &config
 }
 
+
+
+
+
 func main() {
 	configFile := "formatter-wish.yml"
 
@@ -37,11 +41,8 @@ func main() {
 	inLastJobCh := make(chan int)
 	outJobCh := make(chan int)
 
-	input.Init()
-	output.Init()
-
-	go input.EsSearch(config.Input, records, inLastJobCh)
-	go output.EsUpdate(config.Output, records, outJobCh)
+	go input.Execute(config.InCfg, records, inLastJobCh)
+	go output.Execute(config.OutCfg, records, outJobCh)
 
 	// check if last input records has finihsed
 	for {
