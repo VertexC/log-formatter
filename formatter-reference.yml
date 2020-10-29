@@ -1,4 +1,3 @@
-# Elastic Search Input Output Only 
 output:
   target: "elasticsearch"
   elasticsearch:

@@ -61,7 +61,7 @@ func Init() {
 	Default = log.New(io.MultiWriter(file, os.Stdout), "", 0)
 }
 
-func Execute(output EsConfig, recordCh chan []interface{}, outJobCh chan int) {
+func Execute(output EsConfig, recordCh chan []interface{}) {
 	Init()
 	
 	// Create a context object for the API calls
@@ -87,8 +87,7 @@ func Execute(output EsConfig, recordCh chan []interface{}, outJobCh chan int) {
 	} else {
 		Info.Println("client response:", res)
 	}
-
-	jobID := 0
+	
 	for {
 		records := <-recordCh
 		for _, record := range records {
@@ -145,7 +144,5 @@ func Execute(output EsConfig, recordCh chan []interface{}, outJobCh chan int) {
 				}
 			}
 		}
-		jobID++
-		outJobCh <- jobID
 	}
 }

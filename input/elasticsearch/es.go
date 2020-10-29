@@ -62,7 +62,7 @@ func Init() {
 	Default = log.New(io.MultiWriter(file, os.Stdout), "", 0)
 }
 
-func Execute(input EsConfig, recordCh chan []interface{}, inLastJobCh chan int) {
+func Execute(input EsConfig, recordCh chan []interface{}, doneCh chan struct{}) {
 	Init()
 
 	var r map[string]interface{}
@@ -98,7 +98,6 @@ func Execute(input EsConfig, recordCh chan []interface{}, inLastJobCh chan int) 
 	Default.Println(strings.Repeat("~", 37))
 
 	// Build the request body.
-	jobID := 0
 	for _, query := range input.Quries {
 		var buf bytes.Buffer
 
@@ -156,7 +155,5 @@ func Execute(input EsConfig, recordCh chan []interface{}, inLastJobCh chan int) 
 		Trace.Println(strings.Repeat("=", 37))
 
 		recordCh <- msgs
-		jobID++
 	}
-	inLastJobCh <- jobID
 }

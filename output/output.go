@@ -12,9 +12,9 @@ type Config struct {
 
 
 
-func Execute(config Config, records chan[] interface{}, outJobCh chan int) {
+func Execute(config Config, records chan[] interface{}, doneCh chan struct{}) {
 	switch config.Target {
 	case "elasticsearch":
-		elasticsearch.Execute(config.EsCfg, records, outJobCh)
+		elasticsearch.Execute(config.EsCfg, records, )
 	}
 }

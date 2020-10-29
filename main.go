@@ -27,29 +27,18 @@ func loadConfig(configFile string) *Config {
 	return &config
 }
 
-
-
-
-
 func main() {
 	configFile := "formatter-wish.yml"
+	// configFile := "formatter-kafka-es.yml"
 
 	config := loadConfig(configFile)
 	fmt.Printf("%+v\n", *config)
 
 	records := make(chan []interface{})
-	inLastJobCh := make(chan int)
-	outJobCh := make(chan int)
+	doneCh := make(chan struct{})
 
-	go input.Execute(config.InCfg, records, inLastJobCh)
-	go output.Execute(config.OutCfg, records, outJobCh)
+	go input.Execute(config.InCfg, records, doneCh)
+	go output.Execute(config.OutCfg, records, doneCh)
 
-	// check if last input records has finihsed
-	for {
-		inLastJobId := <-inLastJobCh
-		outJobId := <-outJobCh
-		if outJobId == inLastJobId {
-			break
-		}
-	}
+	<- doneCh
 }
