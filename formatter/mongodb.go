@@ -1,8 +1,8 @@
 package formatter
 
 import (
+	"errors"
 	"fmt"
-	"log"
 	"regexp"
 	"strconv"
 )
@@ -17,20 +17,24 @@ type MongoLog struct {
 	message   string
 }
 
-func reSubMatchMap(r *regexp.Regexp, str string) map[string]string {
+func reSubMatchMap(r *regexp.Regexp, str string) (map[string]string, error) {
 	match := r.FindStringSubmatch(str)
 	subMatchMap := make(map[string]string)
-	for i, name := range r.SubexpNames() {
+	groupNames := r.SubexpNames()
+	if len(match) != len(groupNames) {
+		return nil, errors.New(fmt.Sprintf("Failed to extract groups %s from %s", r.SubexpNames, str))
+	}
+	for i, name := range groupNames {
 		if i != 0 {
 			subMatchMap[name] = match[i]
 		}
 	}
-	return subMatchMap
+	return subMatchMap, nil
 }
 
 // GetLabelsMango extract interested label from mongodb message based on specific context
 // TODO: convert this into config
-func GetLabelsMango(message string, component string) map[string]interface{} {
+func GetLabelsMango(message string, component string) (map[string]interface{}, error) {
 	labels := map[string]interface{}{}
 
 	fmt.Println(component)
@@ -44,7 +48,7 @@ func GetLabelsMango(message string, component string) map[string]interface{} {
 		match = regexp.MustCompile(`protocol\:(?P<protocal>.*?)\s+(?P<time>\d+)ms`).FindStringSubmatch(message)
 		labels["protocal"] = match[1]
 		if time, err := strconv.ParseFloat(match[2], 32); err != nil {
-			log.Fatal("Cannot parse time field to float32!")
+			return map[string]interface{}{}, errors.New("Cannot parse time field to float32")
 		} else {
 			labels["time"] = time
 		}
@@ -55,14 +59,14 @@ func GetLabelsMango(message string, component string) map[string]interface{} {
 			labels["plan"] = match[1]
 		}
 	}
-	return labels
+	return labels, nil
 }
 
 // MongoFormatter designed to parse mongodb log message (from 3.2 to 4.3)
 // TODO: validate the ealieast version that fits
 // it returns a mongo
 // <timestamp> <severity> <component> [<context>] <message>
-func MongoFormatter(msg string) (*MongoLog, map[string]interface{}) {
+func MongoFormatter(msg string) (*MongoLog, map[string]interface{}, error) {
 	regex := `(?P<timestamp>\d{4}-\d{2}-\d{2}T\d{2}\:\d{2}\:\d{2}.\d+(?:\+|-)\d+)` // for timestamp in iso8601-local, which is default
 	regex += `\s+` + `(?P<serverity>(?:F|E|W|I|D))`
 	regex += `\s+` + `(?P<component>(?:ACCESS|COMMAND|CONTROL|ELECTION|FTDC|GEO|INDEX|INITSYNC|NETWORK|QUERY|REPL|REPL_HB|ROLLBACK|SHARDING|STORAGE|RECOVERY|JOURNAL|TXN|WRITE)?)` // TODO: add other component type
@@ -70,7 +74,10 @@ func MongoFormatter(msg string) (*MongoLog, map[string]interface{}) {
 	regex += `\s+` + `(?P<message>.*$)`
 	// fmt.Println(regex)
 	re := regexp.MustCompile(regex)
-	matchMap := reSubMatchMap(re, msg)
+	matchMap, err := reSubMatchMap(re, msg)
+	if err != nil {
+		return nil, map[string]interface{}{}, err
+	}
 
 	// Use relect to fill up fields
 	mongoLog := MongoLog{}
@@ -81,9 +88,13 @@ func MongoFormatter(msg string) (*MongoLog, map[string]interface{}) {
 	mongoLog.context = matchMap["context"]
 	mongoLog.message = matchMap["message"]
 
-	labels := GetLabelsMango(mongoLog.message, mongoLog.component)
+	labels, err := GetLabelsMango(mongoLog.message, mongoLog.component)
+
+	if err != nil {
+		return nil, map[string]interface{}{}, err
+	}
 
 	fmt.Printf("Labels: %+v\n", labels)
 	fmt.Printf("MangoLog: %+v\n", mongoLog)
-	return &mongoLog, labels
+	return &mongoLog, labels, nil
 }

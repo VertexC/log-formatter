@@ -93,13 +93,18 @@ func EsUpdate(output OutputConfig, recordCh chan []interface{}, outJobCh chan in
 			// Marshal Elasticsearch document struct objects to JSON string
 			sourceMap := record.(map[string]interface{})["_source"].(map[string]interface{})
 			message := sourceMap["message"].(string)
-			_, labels := formatter.MongoFormatter(message)
+			_, labels, err := formatter.MongoFormatter(message)
+			if err != nil {
+				Error.Printf("Failed to format message %s, with error %s\n", message, err)
+				continue
+			}
 			for key, val := range labels {
 				sourceMap[key] = val
 			}
 			body, err := json.Marshal(sourceMap)
 			if err != nil {
-				log.Fatal("Failed to convert to json:", err)
+				Error.Printf("Failed to convert to json: %s\n", err)
+				continue
 			}
 			// FIXME: change documentId as automatically genrated
 			// or maybe use same Id as input
@@ -117,7 +122,7 @@ func EsUpdate(output OutputConfig, recordCh chan []interface{}, outJobCh chan in
 			// Return an API response object from request
 			res, err := req.Do(ctx, client)
 			if err != nil {
-				log.Fatalf("IndexRequest ERROR: %s\n", err)
+				Error.Printf("IndexRequest ERROR: %s\n", err)
 			}
 			defer res.Body.Close()
 
@@ -135,7 +140,6 @@ func EsUpdate(output OutputConfig, recordCh chan []interface{}, outJobCh chan in
 					Trace.Println("Result:", resMap["result"])
 					Trace.Println("Version:", int(resMap["_version"].(float64)))
 					Trace.Println("resMap:", resMap)
-					Trace.Println("\n")
 				}
 			}
 		}
