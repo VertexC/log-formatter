@@ -22,6 +22,7 @@ var (
 
 type KafkaConfig struct {
 	Host string `yaml:"host"`
+	BatchSize int `default:"1000" yaml:"batch_size"`
 	Topic string `yaml:"topic"`
 	Formatter string `yaml:"formatter"`
 }

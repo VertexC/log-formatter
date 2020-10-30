@@ -29,6 +29,7 @@ type Query struct {
 
 type EsConfig struct {
 	Host   string  `yaml:"host"`
+	BatchSize int `default:"1000" yaml:"batch_size"`
 	Quries []Query `yaml:"quries"`
 }
 
@@ -97,6 +98,8 @@ func Execute(input EsConfig, recordCh chan []interface{}, doneCh chan struct{}) 
 	Info.Printf("Server: %s\n", r["version"].(map[string]interface{})["number"])
 	Default.Println(strings.Repeat("~", 37))
 
+	batchSize := input.BatchSize
+
 	// Build the request body.
 	for _, query := range input.Quries {
 		var buf bytes.Buffer
@@ -150,8 +153,14 @@ func Execute(input EsConfig, recordCh chan []interface{}, doneCh chan struct{}) 
 		for i, hit := range r["hits"].(map[string]interface{})["hits"].([]interface{}) {
 			Trace.Printf("Return Id %d * ID=%s, %s", i, hit.(map[string]interface{})["_id"], hit.(map[string]interface{})["_source"])
 			msgs = append(msgs, hit.(map[string]interface{})["_source"])
+			if len(msgs) == batchSize {
+				// TODO: golang channel behavior, copy or reference
+				recordCh <- msgs
+				// TODO: will golang free memory?
+				msgs = []interface{} {}
+			}
 		}
-
+		
 		Trace.Println(strings.Repeat("=", 37))
 
 		recordCh <- msgs
