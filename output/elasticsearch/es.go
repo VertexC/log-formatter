@@ -63,7 +63,7 @@ func Init() {
 
 func Execute(output EsConfig, recordCh chan []interface{}) {
 	Init()
-	
+
 	// Create a context object for the API calls
 	ctx := context.Background()
 
@@ -87,7 +87,7 @@ func Execute(output EsConfig, recordCh chan []interface{}) {
 	} else {
 		Info.Println("client response:", res)
 	}
-	
+
 	for {
 		records := <-recordCh
 		for _, record := range records {

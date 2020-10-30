@@ -5,12 +5,14 @@ import (
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"log"
+	"os"
 
 	"github.com/VertexC/log-formatter/input"
 	"github.com/VertexC/log-formatter/output"
 )
 
 type Config struct {
+	LogDir string        `yaml:"log" default:"logs"`
 	OutCfg output.Config `yaml:"output"`
 	InCfg  input.Config  `yaml:"input"`
 }
@@ -28,11 +30,13 @@ func loadConfig(configFile string) *Config {
 }
 
 func main() {
-	configFile := "formatter-wish.yml"
-	// configFile := "formatter-kafka-es.yml"
+	configFile := "config.yml"
 
 	config := loadConfig(configFile)
 	fmt.Printf("%+v\n", *config)
+
+	// create log Dir
+	_ = os.Mkdir(config.LogDir, os.ModePerm)
 
 	records := make(chan []interface{})
 	doneCh := make(chan struct{})
@@ -40,5 +44,5 @@ func main() {
 	go input.Execute(config.InCfg, records, doneCh)
 	go output.Execute(config.OutCfg, records, doneCh)
 
-	<- doneCh
+	<-doneCh
 }

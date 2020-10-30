@@ -22,7 +22,7 @@ func reSubMatchMap(r *regexp.Regexp, str string) (map[string]string, error) {
 	subMatchMap := make(map[string]string)
 	groupNames := r.SubexpNames()
 	if len(match) != len(groupNames) {
-		return nil, errors.New(fmt.Sprintf("Failed to extract groups %s from %s", r.SubexpNames(), str))
+		return nil, fmt.Errorf("Failed to extract groups %s from %s", r.SubexpNames(), str)
 	}
 	for i, name := range groupNames {
 		if i != 0 {

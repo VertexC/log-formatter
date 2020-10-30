@@ -1,12 +1,12 @@
 package kafka
 
 import (
-	"github.com/Shopify/sarama"
-	"os/signal"
 	"fmt"
+	"github.com/Shopify/sarama"
 	"io"
 	"log"
 	"os"
+	"os/signal"
 	"path"
 	"time"
 )
@@ -21,9 +21,9 @@ var (
 )
 
 type KafkaConfig struct {
-	Host string `yaml:"host"`
-	BatchSize int `default:"1000" yaml:"batch_size"`
-	Topic string `yaml:"topic"`
+	Host      string `yaml:"host"`
+	BatchSize int    `default:"1000" yaml:"batch_size"`
+	Topic     string `yaml:"topic"`
 	Formatter string `yaml:"formatter"`
 }
 
@@ -95,7 +95,7 @@ func Execute(input KafkaConfig, recordCh chan []interface{}, doneCh chan struct{
 			case msg := <-consumer:
 				msgCount++
 				Trace.Printf("Received messages %+v\n", msg)
-				record := [] interface{}{
+				record := []interface{}{
 					map[string]interface{}{"message": string(msg.Value)},
 				}
 				recordCh <- record
@@ -107,7 +107,7 @@ func Execute(input KafkaConfig, recordCh chan []interface{}, doneCh chan struct{
 				Error.Println("Interrupt is detected")
 				doneCh <- struct{}{}
 			default:
-				time.Sleep(time.Duration(2)*time.Second)
+				time.Sleep(time.Duration(2) * time.Second)
 				Warning.Println("Got nothing!")
 			}
 		}
