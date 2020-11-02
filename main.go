@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"flag"
 
 	"github.com/VertexC/log-formatter/input"
 	"github.com/VertexC/log-formatter/output"
@@ -16,6 +17,9 @@ type Config struct {
 	OutCfg output.Config `yaml:"output"`
 	InCfg  input.Config  `yaml:"input"`
 }
+
+
+var configFilePath = flag.String("c", "config.yml", "config file path")
 
 func loadConfig(configFile string) *Config {
 	yamlFile, err := ioutil.ReadFile(configFile)
@@ -30,7 +34,10 @@ func loadConfig(configFile string) *Config {
 }
 
 func main() {
-	configFile := "config.yml"
+
+	flag.Parse()
+
+	configFile := *configFilePath
 
 	config := loadConfig(configFile)
 	fmt.Printf("%+v\n", *config)
