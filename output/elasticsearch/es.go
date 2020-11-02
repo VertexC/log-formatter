@@ -94,7 +94,7 @@ func Execute(output EsConfig, recordCh chan []interface{}) {
 			// Marshal Elasticsearch document struct objects to JSON string
 			sourceMap := record.(map[string]interface{})
 			message := sourceMap["message"].(string)
-			_, labels, err := formatter.MongoFormatter(message)
+			labels, err := formatter.MongoFormatter(message)
 			if err != nil {
 				Error.Printf("Failed to format message %s, with error %s\n", message, err)
 				continue

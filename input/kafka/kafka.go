@@ -2,23 +2,15 @@ package kafka
 
 import (
 	"fmt"
-	"github.com/Shopify/sarama"
-	"io"
-	"log"
 	"os"
 	"os/signal"
-	"path"
-	"time"
+	// "time"
+
+	"github.com/Shopify/sarama"
+	"github.com/VertexC/log-formatter/util"
 )
 
-var (
-	Trace   *log.Logger
-	Info    *log.Logger
-	Warning *log.Logger
-	Error   *log.Logger
-	Debug   *log.Logger
-	Default *log.Logger
-)
+var logger = new(util.Logger)
 
 type KafkaConfig struct {
 	Host      string `yaml:"host"`
@@ -27,39 +19,9 @@ type KafkaConfig struct {
 	Formatter string `yaml:"formatter"`
 }
 
-func Init() {
-	file, err := os.OpenFile(path.Join("logs", "runtime.log"),
-		os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-	if err != nil {
-		log.Fatalln("Failed to open error log file:", err)
-	}
-
-	Trace = log.New(io.MultiWriter(file, os.Stdout),
-		"[INPUT TRACE]: ",
-		log.Ldate|log.Ltime|log.Lshortfile)
-
-	Info = log.New(io.MultiWriter(file, os.Stdout),
-		"[INPUT INFO]: ",
-		log.Ldate|log.Ltime|log.Lshortfile)
-
-	Warning = log.New(io.MultiWriter(file, os.Stdout),
-		"[INPUT WARNING]: ",
-		log.Ldate|log.Ltime|log.Lshortfile)
-
-	Error = log.New(io.MultiWriter(file, os.Stderr),
-		"[INPUT ERROR]: ",
-		log.Ldate|log.Ltime|log.Lshortfile)
-
-	Debug = log.New(os.Stdout,
-		"[INPUT DEBUG]: ",
-		log.Ldate|log.Ltime|log.Lshortfile)
-
-	Default = log.New(io.MultiWriter(file, os.Stdout), "", 0)
-}
-
 func Execute(input KafkaConfig, recordCh chan []interface{}, doneCh chan struct{}) {
 
-	Init()
+	logger.Init("Kafka Consumer")
 
 	config := sarama.NewConfig()
 	config.ClientID = "go-kafka-consumer"
@@ -94,25 +56,25 @@ func Execute(input KafkaConfig, recordCh chan []interface{}, doneCh chan struct{
 			select {
 			case msg := <-consumer:
 				msgCount++
-				Trace.Printf("Received messages %+v\n", msg)
+				logger.Trace.Printf("Received messages %+v\n", msg)
 				record := []interface{}{
 					map[string]interface{}{"message": string(msg.Value)},
 				}
 				recordCh <- record
 			case consumerError := <-errors:
 				msgCount++
-				Error.Println("Received consumerError ", string(consumerError.Topic), string(consumerError.Partition), consumerError.Err)
+				logger.Error.Println("Received consumerError ", string(consumerError.Topic), string(consumerError.Partition), consumerError.Err)
 				doneCh <- struct{}{}
 			case <-signals:
-				Error.Println("Interrupt is detected")
+				logger.Error.Println("Interrupt is detected")
 				doneCh <- struct{}{}
-			default:
-				time.Sleep(time.Duration(2) * time.Second)
-				Warning.Println("Got nothing!")
+			// default:
+			// 	time.Sleep(time.Duration(2) * time.Second)
+			// 	logger.Warning.Println("Got nothing!")
 			}
 		}
 	}()
-	Info.Println("Processed", msgCount, "messages")
+	logger.Info.Println("Processed", msgCount, "messages")
 }
 
 func consume(targetTopic string, topics []string, master sarama.Consumer) (chan *sarama.ConsumerMessage, chan *sarama.ConsumerError) {
@@ -135,11 +97,11 @@ func consume(targetTopic string, topics []string, master sarama.Consumer) (chan 
 					select {
 					case consumerError := <-consumer.Errors():
 						errors <- consumerError
-						Error.Println("consumerError: ", consumerError.Err)
+						logger.Error.Println("consumerError: ", consumerError.Err)
 
 					case msg := <-consumer.Messages():
 						consumers <- msg
-						Trace.Printf("Got message on topic %s : %s\n", topic, string(msg.Value))
+						logger.Trace.Printf("Got message on topic %s : %s\n", topic, string(msg.Value))
 					}
 				}
 			}(topic, consumer)

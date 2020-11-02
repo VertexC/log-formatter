@@ -2,6 +2,7 @@ package output
 
 import (
 	"github.com/VertexC/log-formatter/output/elasticsearch"
+	"github.com/VertexC/log-formatter/output/console"
 )
 
 type Config struct {
@@ -14,5 +15,7 @@ func Execute(config Config, records chan []interface{}, doneCh chan struct{}) {
 	switch config.Target {
 	case "elasticsearch":
 		elasticsearch.Execute(config.EsCfg, records)
+	case "console":
+		console.Execute(records)
 	}
 }

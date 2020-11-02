@@ -5,17 +5,9 @@ import (
 	"fmt"
 	"regexp"
 	"strconv"
-)
 
-// MongoLog is a template which consists components of mongdb log messages
-// https://docs.mongodb.com/v3.2/replication/
-type MongoLog struct {
-	timestamp string
-	severity  string
-	component string
-	context   string
-	message   string
-}
+	// "github.com/VertexC/log-formatter/util"
+)
 
 func reSubMatchMap(r *regexp.Regexp, str string) (map[string]string, error) {
 	match := r.FindStringSubmatch(str)
@@ -66,7 +58,7 @@ func GetLabelsMango(message string, component string) (map[string]interface{}, e
 // TODO: validate the ealieast version that fits
 // it returns a mongo
 // <timestamp> <severity> <component> [<context>] <message>
-func MongoFormatter(msg string) (*MongoLog, map[string]interface{}, error) {
+func MongoFormatter(msg string) (map[string]interface{}, error) {
 	regex := `(?P<timestamp>\d{4}-\d{2}-\d{2}T\d{2}\:\d{2}\:\d{2}.\d+(?:\+|-)\d+)` // for timestamp in iso8601-local, which is default
 	regex += `\s+` + `(?P<serverity>(?:F|E|W|I|D))`
 	regex += `\s+` + `(?P<component>(?:ACCESS|COMMAND|CONTROL|ELECTION|FTDC|GEO|INDEX|INITSYNC|NETWORK|QUERY|REPL|REPL_HB|ROLLBACK|SHARDING|STORAGE|RECOVERY|JOURNAL|TXN|WRITE)?)` // TODO: add other component type
@@ -76,25 +68,25 @@ func MongoFormatter(msg string) (*MongoLog, map[string]interface{}, error) {
 	re := regexp.MustCompile(regex)
 	matchMap, err := reSubMatchMap(re, msg)
 	if err != nil {
-		return nil, map[string]interface{}{}, err
+		return map[string]interface{}{}, err
 	}
 
-	// Use relect to fill up fields
-	mongoLog := MongoLog{}
-
-	mongoLog.timestamp = matchMap["timestamp"]
-	mongoLog.severity = matchMap["serverity"]
-	mongoLog.component = matchMap["component"]
-	mongoLog.context = matchMap["context"]
-	mongoLog.message = matchMap["message"]
-
-	labels, err := GetLabelsMango(mongoLog.message, mongoLog.component)
+	labels, err := GetLabelsMango(matchMap["message"], matchMap["component"])
 
 	if err != nil {
-		return nil, map[string]interface{}{}, err
+		return map[string]interface{}{}, err
 	}
 
 	fmt.Printf("Labels: %+v\n", labels)
-	fmt.Printf("MangoLog: %+v\n", mongoLog)
-	return &mongoLog, labels, nil
+
+	// merge labels with mongo Log itself
+	for key, val := range matchMap {
+		if _, ok := labels[key]; ok {
+			labels[key+"_"] = val
+		} else {
+			labels[key] = val
+		}
+	}
+
+	return labels, nil
 }
