@@ -11,8 +11,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/VertexC/log-formatter/formatter"
-
 	"github.com/elastic/go-elasticsearch/v8"
 	"github.com/elastic/go-elasticsearch/v8/esapi"
 )
@@ -61,7 +59,7 @@ func Init() {
 	Default = log.New(io.MultiWriter(file, os.Stdout), "", 0)
 }
 
-func Execute(output EsConfig, recordCh chan []interface{}) {
+func Execute(output EsConfig, outputCh chan interface{}) {
 	Init()
 
 	// Create a context object for the API calls
@@ -89,59 +87,46 @@ func Execute(output EsConfig, recordCh chan []interface{}) {
 	}
 
 	for {
-		records := <-recordCh
-		for _, record := range records {
-			// Marshal Elasticsearch document struct objects to JSON string
-			sourceMap := record.(map[string]interface{})
-			message := sourceMap["message"].(string)
-			labels, err := formatter.MongoFormatter(message)
-			if err != nil {
-				Error.Printf("Failed to format message %s, with error %s\n", message, err)
-				continue
-			}
-			for key, val := range labels {
-				sourceMap[key] = val
-			}
-			body, err := json.Marshal(sourceMap)
-			if err != nil {
-				Error.Printf("Failed to convert to json: %s\n", err)
-				continue
-			}
-			// FIXME: change documentId as automatically genrated
-			// or maybe use same Id as input
-			docID := rand.Int()
+		kvMap := <-outputCh
+		body, err := json.Marshal(kvMap)
+		if err != nil {
+			Error.Printf("Failed to convert to json: %s\n", err)
+			continue
+		}
+		// FIXME: change documentId as automatically genrated
+		// or maybe use same Id as input
+		docID := rand.Int()
 
-			Info.Println(string(body))
-			// Instantiate a request object
-			req := esapi.IndexRequest{
-				Index:      "bchen_playground",
-				DocumentID: strconv.Itoa(docID),
-				Body:       strings.NewReader(string(body)),
-				Refresh:    "true",
-			}
+		Info.Println(string(body))
+		// Instantiate a request object
+		req := esapi.IndexRequest{
+			Index:      "bchen_playground",
+			DocumentID: strconv.Itoa(docID),
+			Body:       strings.NewReader(string(body)),
+			Refresh:    "true",
+		}
 
-			// Return an API response object from request
-			res, err := req.Do(ctx, client)
-			if err != nil {
-				Error.Printf("IndexRequest ERROR: %s\n", err)
-			}
-			defer res.Body.Close()
+		// Return an API response object from request
+		res, err := req.Do(ctx, client)
+		if err != nil {
+			Error.Printf("IndexRequest ERROR: %s\n", err)
+		}
+		defer res.Body.Close()
 
-			if res.IsError() {
-				Error.Printf("%s ERROR indexing document ID=%d\n", res.Status(), docID)
+		if res.IsError() {
+			Error.Printf("%s ERROR indexing document ID=%d\n", res.Status(), docID)
+		} else {
+			// Deserialize the response into a map.
+			var resMap map[string]interface{}
+			if err := json.NewDecoder(res.Body).Decode(&resMap); err != nil {
+				Error.Printf("Error parsing the response body: %s\n", err)
 			} else {
-				// Deserialize the response into a map.
-				var resMap map[string]interface{}
-				if err := json.NewDecoder(res.Body).Decode(&resMap); err != nil {
-					Error.Printf("Error parsing the response body: %s\n", err)
-				} else {
-					Trace.Printf("IndexRequest() RESPONSE:")
-					// Print the response status and indexed document version.
-					Trace.Println("Status:", res.Status())
-					Trace.Println("Result:", resMap["result"])
-					Trace.Println("Version:", int(resMap["_version"].(float64)))
-					Trace.Println("resMap:", resMap)
-				}
+				Trace.Printf("IndexRequest() RESPONSE:")
+				// Print the response status and indexed document version.
+				Trace.Println("Status:", res.Status())
+				Trace.Println("Result:", resMap["result"])
+				Trace.Println("Version:", int(resMap["_version"].(float64)))
+				Trace.Println("resMap:", resMap)
 			}
 		}
 	}

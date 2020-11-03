@@ -1,10 +1,10 @@
 package util
 
 import (
-	"log"
 	"fmt"
-	"os"
 	"io"
+	"log"
+	"os"
 	"path"
 )
 
@@ -17,7 +17,7 @@ type Logger struct {
 	Default *log.Logger
 }
 
-func (logger *Logger) Init (prefix string) {
+func (logger *Logger) Init(prefix string) {
 	logPath := path.Join("logs", "runtime.log")
 	file, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {

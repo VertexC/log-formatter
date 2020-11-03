@@ -1,8 +1,8 @@
 package output
 
 import (
-	"github.com/VertexC/log-formatter/output/elasticsearch"
 	"github.com/VertexC/log-formatter/output/console"
+	"github.com/VertexC/log-formatter/output/elasticsearch"
 )
 
 type Config struct {
@@ -11,11 +11,11 @@ type Config struct {
 	KafkaCfg KafkaConfig            `yaml:"kafka,omitempty"`
 }
 
-func Execute(config Config, records chan []interface{}, doneCh chan struct{}) {
+func Execute(config Config, outputCh chan interface{}) {
 	switch config.Target {
 	case "elasticsearch":
-		elasticsearch.Execute(config.EsCfg, records)
+		elasticsearch.Execute(config.EsCfg, outputCh)
 	case "console":
-		console.Execute(records)
+		console.Execute(outputCh)
 	}
 }

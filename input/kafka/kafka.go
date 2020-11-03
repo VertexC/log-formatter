@@ -19,7 +19,7 @@ type KafkaConfig struct {
 	Formatter string `yaml:"formatter"`
 }
 
-func Execute(input KafkaConfig, recordCh chan []interface{}, doneCh chan struct{}) {
+func Execute(input KafkaConfig, inputCh chan interface{}, doneCh chan struct{}) {
 
 	logger.Init("Kafka Consumer")
 
@@ -57,10 +57,7 @@ func Execute(input KafkaConfig, recordCh chan []interface{}, doneCh chan struct{
 			case msg := <-consumer:
 				msgCount++
 				logger.Trace.Printf("Received messages %+v\n", msg)
-				record := []interface{}{
-					map[string]interface{}{"message": string(msg.Value)},
-				}
-				recordCh <- record
+				inputCh <- map[string]interface{}{"message": string(msg.Value)}
 			case consumerError := <-errors:
 				msgCount++
 				logger.Error.Println("Received consumerError ", string(consumerError.Topic), string(consumerError.Partition), consumerError.Err)
@@ -68,9 +65,9 @@ func Execute(input KafkaConfig, recordCh chan []interface{}, doneCh chan struct{
 			case <-signals:
 				logger.Error.Println("Interrupt is detected")
 				doneCh <- struct{}{}
-			// default:
-			// 	time.Sleep(time.Duration(2) * time.Second)
-			// 	logger.Warning.Println("Got nothing!")
+				// default:
+				// 	time.Sleep(time.Duration(2) * time.Second)
+				// 	logger.Warning.Println("Got nothing!")
 			}
 		}
 	}()

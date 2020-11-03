@@ -11,11 +11,11 @@ type Config struct {
 	KafkaCfg kafka.KafkaConfig      `yaml:"kafka,omitempty"`
 }
 
-func Execute(config Config, records chan []interface{}, done chan struct{}) {
+func Execute(config Config, inputCh chan interface{}, doneCh chan struct{}) {
 	switch config.Target {
 	case "elasticsearch":
-		elasticsearch.Execute(config.EsCfg, records, done)
+		elasticsearch.Execute(config.EsCfg, inputCh, doneCh)
 	case "kafka":
-		kafka.Execute(config.KafkaCfg, records, done)
+		kafka.Execute(config.KafkaCfg, inputCh, doneCh)
 	}
 }

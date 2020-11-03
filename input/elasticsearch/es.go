@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/VertexC/log-formatter/util"
-	
+
 	"github.com/elastic/go-elasticsearch/v8"
 )
 
@@ -20,12 +20,11 @@ type Query struct {
 }
 
 type EsConfig struct {
-	Host      string  `yaml:"host"`
-	BatchSize int     `default:"1000" yaml:"batch_size"`
-	Quries    []Query `yaml:"quries"`
+	Host   string  `yaml:"host"`
+	Quries []Query `yaml:"quries"`
 }
 
-func Execute(input EsConfig, recordCh chan []interface{}, doneCh chan struct{}) {
+func Execute(input EsConfig, inputCh chan interface{}, doneCh chan struct{}) {
 	logger.Init("Es Client")
 
 	var r map[string]interface{}
@@ -59,8 +58,6 @@ func Execute(input EsConfig, recordCh chan []interface{}, doneCh chan struct{}) 
 	logger.Info.Printf("Client: %s\n", elasticsearch.Version)
 	logger.Info.Printf("Server: %s\n", r["version"].(map[string]interface{})["number"])
 	logger.Default.Println(strings.Repeat("~", 37))
-
-	batchSize := input.BatchSize
 
 	// Build the request body.
 	for _, query := range input.Quries {
@@ -111,20 +108,12 @@ func Execute(input EsConfig, recordCh chan []interface{}, doneCh chan struct{}) 
 			int(r["took"].(float64)),
 		)
 		// Print the ID and document source for each hit.
-		msgs := []interface{}{}
 		for i, hit := range r["hits"].(map[string]interface{})["hits"].([]interface{}) {
 			logger.Trace.Printf("Return Id %d * ID=%s, %s", i, hit.(map[string]interface{})["_id"], hit.(map[string]interface{})["_source"])
-			msgs = append(msgs, hit.(map[string]interface{})["_source"])
-			if len(msgs) == batchSize {
-				// TODO: golang channel behavior, copy or reference
-				recordCh <- msgs
-				// TODO: will golang free memory?
-				msgs = []interface{}{}
-			}
+			msg := hit.(map[string]interface{})["_source"]
+			inputCh <- msg
 		}
 
 		logger.Trace.Println(strings.Repeat("=", 37))
-
-		recordCh <- msgs
 	}
 }

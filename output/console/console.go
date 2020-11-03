@@ -4,11 +4,9 @@ import (
 	"log"
 )
 
-func Execute(recordCh chan []interface{}) {
+func Execute(recordCh chan interface{}) {
 	for {
-		records := <- recordCh
-		for _, record := range records {
-			log.Printf("[Get Message] +v%\n", record)
-		}
+		record := <-recordCh
+		log.Printf("[Get Message] +v%\n", record)
 	}
 }
