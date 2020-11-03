@@ -68,7 +68,7 @@ func Execute(output EsConfig, outputCh chan interface{}) {
 	// Declare an Elasticsearch configuration
 	cfg := elasticsearch.Config{
 		Addresses: []string{
-			"http://es-qa.bjs.i.wish.com",
+			output.Host,
 		},
 	}
 
