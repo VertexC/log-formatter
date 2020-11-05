@@ -29,7 +29,7 @@ func (logger *Logger) Init(prefix string) {
 		log.Ldate|log.Ltime|log.Lshortfile)
 
 	logger.Info = log.New(io.MultiWriter(file, os.Stdout),
-		fmt.Sprintf("[%s INPUT]: ", prefix),
+		fmt.Sprintf("[%s INFO]: ", prefix),
 		log.Ldate|log.Ltime|log.Lshortfile)
 
 	logger.Warning = log.New(io.MultiWriter(file, os.Stdout),

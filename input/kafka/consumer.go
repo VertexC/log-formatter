@@ -12,22 +12,23 @@ import (
 
 var logger = new(util.Logger)
 
-type KafkaConfig struct {
-	Host      string `yaml:"host"`
+type Config struct {
+	Broker    string `yaml:"broker"`
 	BatchSize int    `default:"1000" yaml:"batch_size"`
+	GroupName string `default:"log-formatter" yaml:"group_name"`
 	Topic     string `yaml:"topic"`
-	Formatter string `yaml:"formatter"`
+	Version   string `default:"2.4.0" yaml:"version"`
 }
 
-func Execute(input KafkaConfig, inputCh chan interface{}, doneCh chan struct{}) {
+func ExecuteClient(input Config, inputCh chan interface{}, doneCh chan struct{}) {
 
-	logger.Init("Kafka Consumer")
+	logger.Init("Kafka Consumer Client")
 
 	config := sarama.NewConfig()
-	config.ClientID = "go-kafka-consumer"
+	config.ClientID = input.GroupName
 	config.Consumer.Return.Errors = true
 
-	brokers := []string{input.Host}
+	brokers := []string{input.Broker}
 
 	// Create new consumer
 	master, err := sarama.NewConsumer(brokers, config)

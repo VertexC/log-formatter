@@ -6,6 +6,8 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/VertexC/log-formatter/formatter"
 	"github.com/VertexC/log-formatter/input"
@@ -53,8 +55,22 @@ func main() {
 	outputCh := make(chan interface{}, 1000)
 	doneCh := make(chan struct{})
 
+	sigterm := make(chan os.Signal, 1)
+	signal.Notify(sigterm, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		select {
+		case <-sigterm:
+			logger.Info.Println("terminating: via signal")
+			doneCh <- struct{}{}
+		}
+	}()
+
+	logger.Info.Println("Start Input Routine")
 	go input.Execute(config.InCfg, inputCh, doneCh)
+	logger.Info.Println("Start Formatter Routine")
 	go formatter.Execute(config.FmtCfg, inputCh, outputCh)
+	logger.Info.Println("Start Output Routine")
 	go output.Execute(config.OutCfg, outputCh)
 
 	<-doneCh

@@ -8,7 +8,7 @@ import (
 type Config struct {
 	Target   string                 `yaml:"target"`
 	EsCfg    elasticsearch.EsConfig `yaml:"elasticsearch,omitempty"`
-	KafkaCfg kafka.KafkaConfig      `yaml:"kafka,omitempty"`
+	KafkaCfg kafka.Config           `yaml:"kafka,omitempty"`
 }
 
 func Execute(config Config, inputCh chan interface{}, doneCh chan struct{}) {
@@ -16,6 +16,7 @@ func Execute(config Config, inputCh chan interface{}, doneCh chan struct{}) {
 	case "elasticsearch":
 		elasticsearch.Execute(config.EsCfg, inputCh, doneCh)
 	case "kafka":
-		kafka.Execute(config.KafkaCfg, inputCh, doneCh)
+		// kafka.Execute(config.KafkaCfg, inputCh, doneCh)
+		kafka.ExecuteGroup(config.KafkaCfg, inputCh, doneCh)
 	}
 }
