@@ -51,27 +51,24 @@ func Execute(input KafkaConfig, inputCh chan interface{}, doneCh chan struct{}) 
 	// Count how many message processed
 	msgCount := 0
 
-	go func() {
-		for {
-			select {
-			case msg := <-consumer:
-				msgCount++
-				logger.Trace.Printf("Received messages %+v\n", msg)
-				inputCh <- map[string]interface{}{"message": string(msg.Value)}
-			case consumerError := <-errors:
-				msgCount++
-				logger.Error.Println("Received consumerError ", string(consumerError.Topic), string(consumerError.Partition), consumerError.Err)
-				doneCh <- struct{}{}
-			case <-signals:
-				logger.Error.Println("Interrupt is detected")
-				doneCh <- struct{}{}
-				// default:
-				// 	time.Sleep(time.Duration(2) * time.Second)
-				// 	logger.Warning.Println("Got nothing!")
-			}
+	for {
+		select {
+		case msg := <-consumer:
+			msgCount++
+			logger.Trace.Printf("Received messages %+v\n", msg)
+			inputCh <- map[string]interface{}{"message": string(msg.Value)}
+		case consumerError := <-errors:
+			msgCount++
+			logger.Error.Println("Received consumerError ", string(consumerError.Topic), string(consumerError.Partition), consumerError.Err)
+			doneCh <- struct{}{}
+		case <-signals:
+			logger.Error.Println("Interrupt is detected")
+			doneCh <- struct{}{}
+			// default:
+			// 	time.Sleep(time.Duration(2) * time.Second)
+			// 	logger.Warning.Println("Got nothing!")
 		}
-	}()
-	logger.Info.Println("Processed", msgCount, "messages")
+	}
 }
 
 func consume(targetTopic string, topics []string, master sarama.Consumer) (chan *sarama.ConsumerMessage, chan *sarama.ConsumerError) {

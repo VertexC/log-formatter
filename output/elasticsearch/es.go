@@ -5,10 +5,8 @@ import (
 	"encoding/json"
 	"io"
 	"log"
-	"math/rand"
 	"os"
 	"path"
-	"strconv"
 	"strings"
 
 	"github.com/elastic/go-elasticsearch/v8"
@@ -93,15 +91,14 @@ func Execute(output EsConfig, outputCh chan interface{}) {
 			Error.Printf("Failed to convert to json: %s\n", err)
 			continue
 		}
-		// FIXME: change documentId as automatically genrated
-		// or maybe use same Id as input
-		docID := rand.Int()
+		// ask es to generate doc ID automatically
+		docID := ""
 
 		Info.Println(string(body))
 		// Instantiate a request object
 		req := esapi.IndexRequest{
-			Index:      "bchen_playground",
-			DocumentID: strconv.Itoa(docID),
+			Index:      output.Index,
+			DocumentID: docID,
 			Body:       strings.NewReader(string(body)),
 			Refresh:    "true",
 		}
@@ -121,12 +118,9 @@ func Execute(output EsConfig, outputCh chan interface{}) {
 			if err := json.NewDecoder(res.Body).Decode(&resMap); err != nil {
 				Error.Printf("Error parsing the response body: %s\n", err)
 			} else {
-				Trace.Printf("IndexRequest() RESPONSE:")
 				// Print the response status and indexed document version.
-				Trace.Println("Status:", res.Status())
-				Trace.Println("Result:", resMap["result"])
-				Trace.Println("Version:", int(resMap["_version"].(float64)))
-				Trace.Println("resMap:", resMap)
+				Trace.Printf("IndexRequest() RESPONSE: \nStatus: %s\n Result: %s\n Version:%s\n KvMap:%+v\n ",
+					res.Status(), resMap["result"], int(resMap["_version"].(float64)), resMap)
 			}
 		}
 	}
