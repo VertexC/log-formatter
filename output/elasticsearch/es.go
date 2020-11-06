@@ -66,22 +66,24 @@ func Execute(output EsConfig, outputCh chan interface{}, logFile string, verbose
 		// Return an API response object from request
 		res, err := req.Do(ctx, client)
 		if err != nil {
-			logger.Error.Printf("IndexRequest ERROR: %s\n", err)
+			logger.Error.Fatalln("IndexRequest ERROR: %s\n", err)
 		}
-		defer res.Body.Close()
+		func() {
+			defer res.Body.Close()
 
-		if res.IsError() {
-			logger.Error.Printf("%s ERROR indexing document ID=%d\n", res.Status(), docID)
-		} else {
-			// Deserialize the response into a map.
-			var resMap map[string]interface{}
-			if err := json.NewDecoder(res.Body).Decode(&resMap); err != nil {
-				logger.Error.Printf("Error parsing the response body: %s\n", err)
+			if res.IsError() {
+				logger.Error.Printf("%s ERROR indexing document ID=%d\n", res.Status(), docID)
 			} else {
-				// Print the response status and indexed document version.
-				logger.Trace.Printf("IndexRequest() RESPONSE: \nStatus: %s\n Result: %s\n Version:%s\n KvMap:%+v\n ",
-					res.Status(), resMap["result"], int(resMap["_version"].(float64)), resMap)
+				var resMap map[string]interface{}
+				decorder := json.NewDecoder(res.Body)
+				if err := decorder.Decode(&resMap); err != nil {
+					logger.Error.Printf("Error parsing the response body: %s\n", err)
+				} else {
+					// Print the response status and indexed document version.
+					logger.Trace.Printf("IndexRequest() RESPONSE: \nStatus: %s\n Result: %s\n Version:%s\n KvMap:%+v\n ",
+						res.Status(), resMap["result"], int(resMap["_version"].(float64)), resMap)
+				}
 			}
-		}
+		}()
 	}
 }

@@ -85,26 +85,29 @@ func Execute(input EsConfig, inputCh chan interface{}, logFile string, verbose b
 				if err != nil {
 					logger.Error.Fatalf("Error getting response: %s", err)
 				}
-				defer res.Body.Close()
+				func() {
+					defer res.Body.Close()
 
-				if res.IsError() {
-					var e map[string]interface{}
-					if err := json.NewDecoder(res.Body).Decode(&e); err != nil {
-						logger.Error.Println(res.Body)
-						logger.Error.Fatalf("Error parsing the response body: %s", err)
-					} else {
-						// Print the response status and error information.
-						logger.Error.Fatalf("[%s] %s: %s",
-							res.Status(),
-							e["error"].(map[string]interface{})["type"],
-							e["error"].(map[string]interface{})["reason"],
-						)
+					if res.IsError() {
+						var e map[string]interface{}
+						if err := json.NewDecoder(res.Body).Decode(&e); err != nil {
+							logger.Error.Println(res.Body)
+							logger.Error.Fatalf("Error parsing the response body: %s", err)
+						} else {
+							// Print the response status and error information.
+							logger.Error.Fatalf("[%s] %s: %s",
+								res.Status(),
+								e["error"].(map[string]interface{})["type"],
+								e["error"].(map[string]interface{})["reason"],
+							)
+						}
 					}
-				}
 
-				if err := json.NewDecoder(res.Body).Decode(&r); err != nil {
-					logger.Error.Fatalf("Error parsing the response body: %s", err)
-				}
+					if err := json.NewDecoder(res.Body).Decode(&r); err != nil {
+						logger.Error.Fatalf("Error parsing the response body: %s", err)
+					}
+				}()
+
 				// Print the response status, number of results, and request duration.
 				logger.Trace.Printf(
 					"[%s] %d hits; took: %dms",

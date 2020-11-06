@@ -2,6 +2,10 @@ package main
 
 import (
 	"flag"
+	"github.com/VertexC/log-formatter/formatter"
+	"github.com/VertexC/log-formatter/input"
+	"github.com/VertexC/log-formatter/output"
+	"github.com/VertexC/log-formatter/util"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"log"
@@ -9,11 +13,6 @@ import (
 	"os/signal"
 	"path"
 	"syscall"
-
-	"github.com/VertexC/log-formatter/formatter"
-	"github.com/VertexC/log-formatter/input"
-	"github.com/VertexC/log-formatter/output"
-	"github.com/VertexC/log-formatter/util"
 )
 
 type Config struct {
