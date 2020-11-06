@@ -50,6 +50,9 @@ func (formatter *Formatter) Format(msg string) map[string]interface{} {
 					continue
 				}
 				for key, val := range labelMap {
+					if key[len(key)-1:] == "_" {
+						continue
+					}
 					kvResult[key] = val
 				}
 			}
@@ -57,6 +60,9 @@ func (formatter *Formatter) Format(msg string) map[string]interface{} {
 	}
 
 	for key, val := range componentMap {
+		if key[len(key)-1:] == "_" {
+			continue
+		}
 		kvResult[key] = val
 	}
 

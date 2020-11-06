@@ -31,13 +31,13 @@ func Execute(config Config, inputCh chan interface{}, outputCh chan interface{})
 		record := <-inputCh
 		message := record.(map[string]interface{})["message"].(string)
 		// FIXME: here kv should be map[string]string
-		// should we preserver the log message even log formatter cannot parse it?
+
 		kvMap := formatter.Format(message)
 		if kvMap == nil {
-			kvMap = map[string]interface{}{"message_": record}
+			kvMap = map[string]interface{}{"sourceData_": record}
 			continue
 		} else {
-			kvMap["message_"] = record
+			kvMap["sourceData_"] = record
 		}
 		outputCh <- kvMap
 	}
