@@ -2,8 +2,6 @@ package kafka
 
 import (
 	"fmt"
-	"os"
-	"os/signal"
 	// "time"
 
 	"github.com/Shopify/sarama"
@@ -20,9 +18,9 @@ type Config struct {
 	Version   string `default:"2.4.0" yaml:"version"`
 }
 
-func ExecuteClient(input Config, inputCh chan interface{}, doneCh chan struct{}) {
+func ExecuteClient(input Config, inputCh chan interface{}, logFile string, verbose bool) {
 
-	logger.Init("Kafka Consumer Client")
+	logger.Init(logFile, "Kafka-Consumer-Client", verbose)
 
 	config := sarama.NewConfig()
 	config.ClientID = input.GroupName
@@ -46,9 +44,6 @@ func ExecuteClient(input Config, inputCh chan interface{}, doneCh chan struct{})
 
 	consumer, errors := consume(input.Topic, topics, master)
 
-	signals := make(chan os.Signal, 1)
-	signal.Notify(signals, os.Interrupt)
-
 	// Count how many message processed
 	msgCount := 0
 
@@ -60,14 +55,7 @@ func ExecuteClient(input Config, inputCh chan interface{}, doneCh chan struct{})
 			inputCh <- map[string]interface{}{"message": string(msg.Value)}
 		case consumerError := <-errors:
 			msgCount++
-			logger.Error.Println("Received consumerError ", string(consumerError.Topic), string(consumerError.Partition), consumerError.Err)
-			doneCh <- struct{}{}
-		case <-signals:
-			logger.Error.Println("Interrupt is detected")
-			doneCh <- struct{}{}
-			// default:
-			// 	time.Sleep(time.Duration(2) * time.Second)
-			// 	logger.Warning.Println("Got nothing!")
+			logger.Error.Fatalln("Received consumerError ", string(consumerError.Topic), string(consumerError.Partition), consumerError.Err)
 		}
 	}
 }

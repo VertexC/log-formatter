@@ -24,8 +24,8 @@ type EsConfig struct {
 	Quries []Query `yaml:"quries"`
 }
 
-func Execute(input EsConfig, inputCh chan interface{}, doneCh chan struct{}) {
-	logger.Init("Es Client")
+func Execute(input EsConfig, inputCh chan interface{}, logFile string, verbose bool) {
+	logger.Init(logFile, "Input-Es", verbose)
 
 	var r map[string]interface{}
 
@@ -53,11 +53,13 @@ func Execute(input EsConfig, inputCh chan interface{}, doneCh chan struct{}) {
 	// Deserialize the response into a map.
 	if err := json.NewDecoder(res.Body).Decode(&r); err != nil {
 		logger.Error.Fatalf("Error parsing the response body: %s", err)
+	} else {
+		body, _ := json.MarshalIndent(r, "", "  ")
+		logger.Info.Println("client response:", string(body))
 	}
 	// Print client and server version numbers.
 	logger.Info.Printf("Client: %s\n", elasticsearch.Version)
 	logger.Info.Printf("Server: %s\n", r["version"].(map[string]interface{})["number"])
-	logger.Default.Println(strings.Repeat("~", 37))
 
 	// Build the request body.
 	for _, query := range input.Quries {

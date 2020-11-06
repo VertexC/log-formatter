@@ -25,15 +25,15 @@ func (formatter *Formatter) SetConfig(config Config) {
 	formatter.config = config
 }
 
-func (formatter *Formatter) Init() {
-	formatter.logger.Init("General-Formatter")
+func (formatter *Formatter) Init(logFile string, verbose bool) {
+	formatter.logger.Init(logFile, "General-Formatter", verbose)
 }
 
 func (formatter *Formatter) Format(msg string) map[string]interface{} {
 	// FIXME: okay to allow panic happens and terminate the process?
 	componentMap, err := reSubMatchMap(formatter.config.Regex, msg)
 	if err != nil {
-		formatter.logger.Error.Printf("Error occurs while get SubMatch Groups: %s\n", err)
+		formatter.logger.Error.Printf("Error occurs while get compponents: %s\n", err)
 		return nil
 	}
 
@@ -46,7 +46,7 @@ func (formatter *Formatter) Format(msg string) map[string]interface{} {
 			for _, regex := range label.Regexprs {
 				labelMap, err := reSubMatchMap(regex, component)
 				if err != nil {
-					formatter.logger.Error.Printf("Error occurs while get SubMatch Groups: %s\n", err)
+					formatter.logger.Warning.Printf("Error occurs while get labels: %s\n", err)
 					continue
 				}
 				for key, val := range labelMap {

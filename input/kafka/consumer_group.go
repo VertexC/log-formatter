@@ -4,7 +4,6 @@ import (
 	"context"
 	"github.com/Shopify/sarama"
 	"log"
-	"os"
 	"sync"
 )
 
@@ -13,11 +12,11 @@ type Consumer struct {
 	inputCh chan interface{}
 }
 
-func ExecuteGroup(config Config, inputCh chan interface{}, doneCh chan struct{}) {
+func ExecuteGroup(config Config, inputCh chan interface{}, logFile string, verbose bool) {
 
-	logger.Init("Kafka Consumer Consumer")
-	// FIXME: intergrate saram log to runtime log
-	sarama.Logger = log.New(os.Stdout, "[sarama] ", log.LstdFlags)
+	logger.Init(logFile, "Kafka-Consumer-Group", verbose)
+
+	sarama.Logger = logger.Trace
 
 	version, err := sarama.ParseKafkaVersion(config.Version)
 	if err != nil {

@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"path"
 	"syscall"
 
 	"github.com/VertexC/log-formatter/formatter"
@@ -22,7 +23,8 @@ type Config struct {
 	FmtCfg formatter.Config `yaml:"formatter"`
 }
 
-var configFilePath = flag.String("c", "", "config file path")
+var configFilePath = flag.String("c", "config.yml", "config file path")
+var verboseFlag = flag.Bool("v", false, "add TRACE/WARNING if enabled")
 
 var logger = new(util.Logger)
 
@@ -38,18 +40,27 @@ func loadConfig(configFile string) *Config {
 	return &config
 }
 
-func main() {
-
+func Init() (config *Config, verbose bool) {
 	flag.Parse()
-	logger.Init("main")
 
 	configFile := *configFilePath
+	verbose = *verboseFlag
 
-	config := loadConfig(configFile)
-	logger.Info.Printf("%+v\n", *config)
+	config = loadConfig(configFile)
 
 	// create log Dir
 	_ = os.Mkdir(config.LogDir, os.ModePerm)
+
+	return
+}
+
+func main() {
+	config, verbose := Init()
+
+	logFile := path.Join(config.LogDir, "runtime.log")
+	logger.Init(logFile, "Main", verbose)
+
+	logger.Info.Printf("Get config %+v\n", *config)
 
 	inputCh := make(chan interface{}, 1000)
 	outputCh := make(chan interface{}, 1000)
@@ -67,11 +78,11 @@ func main() {
 	}()
 
 	logger.Info.Println("Start Input Routine")
-	go input.Execute(config.InCfg, inputCh, doneCh)
+	go input.Execute(config.InCfg, inputCh, logFile, verbose)
 	logger.Info.Println("Start Formatter Routine")
-	go formatter.Execute(config.FmtCfg, inputCh, outputCh)
+	go formatter.Execute(config.FmtCfg, inputCh, outputCh, logFile, verbose)
 	logger.Info.Println("Start Output Routine")
-	go output.Execute(config.OutCfg, outputCh)
+	go output.Execute(config.OutCfg, outputCh, logFile, verbose)
 
 	<-doneCh
 }

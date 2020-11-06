@@ -5,7 +5,7 @@ import (
 )
 
 type Formatter interface {
-	Init()
+	Init(filePath string, verbose bool)
 	Format(msg string) map[string]interface{}
 }
 
@@ -18,15 +18,16 @@ func New(config Config) Formatter {
 	switch config.Type {
 	case "general":
 		formatter := new(general.Formatter)
-		formatter.Init()
 		formatter.SetConfig(config.GeneralCfg)
 		return formatter
 	}
 	return nil
 }
 
-func Execute(config Config, inputCh chan interface{}, outputCh chan interface{}) {
+func Execute(config Config, inputCh chan interface{}, outputCh chan interface{}, filePath string, verbose bool) {
 	formatter := New(config)
+	formatter.Init(filePath, verbose)
+
 	for {
 		record := <-inputCh
 		message := record.(map[string]interface{})["message"].(string)
