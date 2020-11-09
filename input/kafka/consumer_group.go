@@ -49,7 +49,7 @@ func ExecuteGroup(config Config, inputCh chan interface{}, logFile string, verbo
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
 	go func() {
-		// defer wg.Done()
+		defer wg.Done()
 		for {
 			// `Consume` should be called inside an infinite loop, when a
 			// server-side rebalance happens, the consumer session will need to be

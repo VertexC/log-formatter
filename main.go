@@ -6,6 +6,7 @@ import (
 	"github.com/VertexC/log-formatter/input"
 	"github.com/VertexC/log-formatter/output"
 	"github.com/VertexC/log-formatter/util"
+	"github.com/pkg/profile"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"log"
@@ -23,7 +24,9 @@ type Config struct {
 }
 
 var configFilePath = flag.String("c", "config.yml", "config file path")
-var verboseFlag = flag.Bool("v", false, "add TRACE/WARNING if enabled")
+var verboseFlag = flag.Bool("v", false, "add TRACE/WARNING logging if enabled")
+var cpuProfile = flag.Bool("cpuprof", false, "enable cpu profile")
+var memProfile = flag.Bool("memprof", false, "enable mem profile")
 
 var logger = new(util.Logger)
 
@@ -40,8 +43,6 @@ func loadConfig(configFile string) *Config {
 }
 
 func Init() (config *Config, verbose bool) {
-	flag.Parse()
-
 	configFile := *configFilePath
 	verbose = *verboseFlag
 
@@ -54,6 +55,23 @@ func Init() (config *Config, verbose bool) {
 }
 
 func main() {
+	flag.Parse()
+
+	// prof
+	profiles := []func(*profile.Profile){}
+	if *cpuProfile {
+		profiles = append(profiles, profile.CPUProfile)
+	}
+
+	if *memProfile {
+		profiles = append(profiles, profile.MemProfile)
+	}
+
+	if len(profiles) != 0 {
+		profiles = append(profiles, profile.NoShutdownHook)
+		defer profile.Start(profiles...).Stop()
+	}
+
 	config, verbose := Init()
 
 	logFile := path.Join(config.LogDir, "runtime.log")
