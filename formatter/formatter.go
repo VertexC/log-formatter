@@ -30,6 +30,7 @@ func Execute(config Config, inputCh chan interface{}, outputCh chan interface{},
 
 	for {
 		record := <-inputCh
+		// make message field configurable
 		message := record.(map[string]interface{})["message"].(string)
 		// FIXME: here kv should be map[string]string
 

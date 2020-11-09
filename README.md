@@ -53,6 +53,14 @@ formatter:
           - planSummary:\s+(?P<planSummary>[A-Z]+\s+\{.*?\})\s+
 
 ```
+Or modulized with `!include`
+```yaml
+log: "logs"
+output: !include modules/output.yml
+input: !include modules/input.yml
+formatter: !include modules/formatter.yml
+```
+
 ###  Formatter Plugins
 - General Formatter
   - Parse log into different components

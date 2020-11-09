@@ -37,9 +37,7 @@ func ExecuteGroup(config Config, inputCh chan interface{}, logFile string, verbo
 		inputCh: inputCh,
 	}
 
-	// TODO: what does this do? golang context
 	ctx, cancel := context.WithCancel(context.Background())
-	// TODO: add multi brokers in config
 	brokers := []string{config.Broker}
 	client, err := sarama.NewConsumerGroup(brokers, config.GroupName, saramaCfg)
 	if err != nil {
