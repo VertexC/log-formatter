@@ -29,6 +29,10 @@ func (formatter *Formatter) Init(logFile string, verbose bool) {
 	formatter.logger.Init(logFile, "General-Formatter", verbose)
 }
 
+func (formatter *Formatter) DiscardLog() {
+	formatter.logger.DiscardAll()
+}
+
 func (formatter *Formatter) Format(msg string) map[string]interface{} {
 	// FIXME: okay to allow panic happens and terminate the process?
 	componentMap, err := reSubMatchMap(formatter.config.Regex, msg)
