@@ -29,8 +29,6 @@ func TestComponents(t *testing.T) {
 	result := formatter.Format(msg)
 	if !reflect.DeepEqual(result, expected) {
 		t.Fatalf("Got %+v but expected %+v", result, expected)
-	} else {
-		t.Fatalf("Got %+v but expected %+v", result, expected)
 	}
 }
 

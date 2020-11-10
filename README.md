@@ -1,3 +1,4 @@
+[![Build Status](https://travis-ci.org/VertexC/log-formatter.svg?branch=master)](https://travis-ci.org/VertexC/log-formatter)
 # Log Formatter
 Log Formatter provides configurable pipeline to process log data.
 
