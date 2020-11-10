@@ -1,9 +1,9 @@
 package elasticsearch
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
-	"strings"
 
 	"github.com/VertexC/log-formatter/util"
 	"github.com/elastic/go-elasticsearch/v8"
@@ -45,34 +45,59 @@ func Execute(output EsConfig, outputCh chan interface{}, logFile string, verbose
 	}
 
 	for {
-		kvMap := <-outputCh
-		body, err := json.Marshal(kvMap)
-		if err != nil {
-			logger.Error.Printf("Failed to convert to json: %s\n", err)
-			continue
-		}
-		// ask es to generate doc ID automatically
-		docID := ""
+		/*
+			POST _bulk
+			{ "create" : { "_index" : "test", "_id" : "3" } }
+			{ "field1" : "value3" }
+		*/
 
-		logger.Trace.Println(string(body))
-		// Instantiate a request object
-		req := esapi.IndexRequest{
-			Index:      output.Index,
-			DocumentID: docID,
-			Body:       strings.NewReader(string(body)),
-			Refresh:    "true",
+		// FIXME: tailing messages will get blocked
+		batchSize := 1000
+		var bodyBuf bytes.Buffer
+		for {
+			kvMap := <-outputCh
+			createLine := map[string]interface{}{
+				"create": map[string]interface{}{
+					"_index": output.Index,
+				},
+			}
+			if jsonStr, err := json.Marshal(createLine); err != nil {
+				logger.Error.Fatalf("Failed to convert to json: %s\n", err)
+			} else {
+				bodyBuf.Write(jsonStr)
+				bodyBuf.WriteByte('\n')
+			}
+
+			if jsonStr, err := json.Marshal(kvMap); err != nil {
+				logger.Error.Fatalf("Failed to convert to json: %s\n", err)
+			} else {
+				bodyBuf.Write(jsonStr)
+				bodyBuf.WriteByte('\n')
+			}
+			batchSize--
+			if batchSize == 0 {
+				break
+			}
 		}
 
-		// Return an API response object from request
-		res, err := req.Do(ctx, client)
-		if err != nil {
-			logger.Error.Fatalln("IndexRequest ERROR: %s\n", err)
+		// batch update using bulk
+		req := esapi.BulkRequest{
+			Body:    &bodyBuf,
+			Refresh: "true",
 		}
-		func() {
+
+		logger.Trace.Println(bodyBuf.String())
+
+		go func() {
+			// Return an API response object from request
+			res, err := req.Do(ctx, client)
+			if err != nil {
+				logger.Error.Fatalf("IndexRequest ERROR: %s\n", err)
+			}
 			defer res.Body.Close()
 
 			if res.IsError() {
-				logger.Error.Printf("%s ERROR indexing document ID=%d\n", res.Status(), docID)
+				logger.Error.Printf("ERROR indexing document with status: %s", res.Status())
 			} else {
 				var resMap map[string]interface{}
 				decorder := json.NewDecoder(res.Body)
@@ -80,8 +105,10 @@ func Execute(output EsConfig, outputCh chan interface{}, logFile string, verbose
 					logger.Error.Printf("Error parsing the response body: %s\n", err)
 				} else {
 					// Print the response status and indexed document version.
-					logger.Trace.Printf("IndexRequest() RESPONSE: \nStatus: %s\n Result: %s\n Version:%s\n KvMap:%+v\n ",
-						res.Status(), resMap["result"], int(resMap["_version"].(float64)), resMap)
+					// logger.Trace.Printf("IndexRequest() RESPONSE: \nStatus: %s\n Result: %s\n Version:%s\n KvMap:%+v\n ",
+					// 	res.Status(), resMap["result"], int(resMap["_version"].(float64)), resMap)
+					logger.Trace.Printf("IndexRequest() RESPONSE: \nStatus: %s\n KvMap:%+v\n ",
+						res.Status(), resMap)
 				}
 			}
 		}()
