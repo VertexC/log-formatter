@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"math"
 
 	"github.com/VertexC/log-formatter/util"
 	"github.com/elastic/go-elasticsearch/v8"
@@ -11,9 +12,9 @@ import (
 )
 
 type EsConfig struct {
-	Host  string `yaml:"host"`
-	Index string `yaml:"index"`
-	BatchSize int `yaml:"batchsize" default:"1000"`
+	Host      string `yaml:"host"`
+	Index     string `yaml:"index"`
+	BatchSize int    `yaml:"batchsize"`
 }
 
 var logger = new(util.Logger)
@@ -53,7 +54,8 @@ func Execute(output EsConfig, outputCh chan interface{}, logFile string, verbose
 		*/
 
 		// FIXME: tailing messages will get blocked
-		batchSize := output.BatchSize
+		batchSize := int(math.Max(100, float64(output.BatchSize)))
+		logger.Trace.Println(batchSize)
 		var bodyBuf bytes.Buffer
 		for {
 			kvMap := <-outputCh
