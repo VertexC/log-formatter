@@ -51,7 +51,6 @@ func (logger *Logger) Init(logFile string, prefix string, verbose bool) {
 	if !verbose {
 		logger.Warning.SetOutput(ioutil.Discard)
 		logger.Trace.SetOutput(ioutil.Discard)
-		logger.Debug.SetOutput(ioutil.Discard)
 	}
 }
 
