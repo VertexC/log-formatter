@@ -5,7 +5,7 @@ Log Formatter provides configurable pipeline to process log data.
 
 ``` Raw Logs (string) -> KV Maps -> Enhanced KV Maps```
 
-# Usage
+## Usage
 ```bash
 -c string
     config file path (default "config.yml")
@@ -16,7 +16,10 @@ Log Formatter provides configurable pipeline to process log data.
 -v    add TRACE/WARNING logging if enabled
 ```
 
-# Configuration
+## Documentation
+https://godoc.org/github.com/VertexC/log-formatter
+
+## Configuration
 **A Example Config**: Request mongo log from an es server, parse it with general-formatter with labels, send enhanced results to another es server. 
 ```yaml
 log: "logs"
@@ -71,6 +74,7 @@ formatter: !include modules/formatter.yml
 ### Input Plugins
 - Kafka
 - Elasticsearch
+
 ### Output Plugins
 - Console
 - Elasticsearch
