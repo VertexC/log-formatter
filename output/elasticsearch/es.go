@@ -13,6 +13,7 @@ import (
 type EsConfig struct {
 	Host  string `yaml:"host"`
 	Index string `yaml:"index"`
+	BatchSize int `yaml:"batchsize" default:"1000"`
 }
 
 var logger = new(util.Logger)
@@ -52,7 +53,7 @@ func Execute(output EsConfig, outputCh chan interface{}, logFile string, verbose
 		*/
 
 		// FIXME: tailing messages will get blocked
-		batchSize := 1000
+		batchSize := output.BatchSize
 		var bodyBuf bytes.Buffer
 		for {
 			kvMap := <-outputCh
