@@ -24,3 +24,9 @@ script: make $TARGET
 
 after_script:
   rm logs/* || true
+
+after_success:
+  echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin 
+  docker build --tag log-formatter .
+  docker tag log-formatter vertexc/log-formatter
+  docker push vertexc/log-formatter:latest
