@@ -1,0 +1,6 @@
+target: "kafka"
+kafka:
+  broker: "127.0.0.1:9092"
+  topic: "test"
+  group_name: "formatter-test"
+  version: "2.6.0"
