@@ -130,7 +130,7 @@ func main() {
 	logger.Info.Printf("Get config %+v\n", *config)
 
 	// TODO: make it configurable
-	inputCh := make(chan interface{}, 1000)
+	inputCh := make(chan map[string]interface{}, 1000)
 	outputCh := make(chan interface{}, 1000)
 	doneCh := make(chan struct{})
 

@@ -25,7 +25,7 @@ type EsConfig struct {
 	Quries []Query `yaml:"quries"`
 }
 
-func Execute(input EsConfig, inputCh chan interface{}, logFile string, verbose bool) {
+func Execute(input EsConfig, inputCh chan map[string]interface{}, logFile string, verbose bool) {
 	logger.Init(logFile, "Input-Es", verbose)
 
 	var r map[string]interface{}
@@ -119,7 +119,7 @@ func Execute(input EsConfig, inputCh chan interface{}, logFile string, verbose b
 				for i, hit := range r["hits"].(map[string]interface{})["hits"].([]interface{}) {
 					logger.Trace.Printf("Return Id %d * ID=%s, %s", i, hit.(map[string]interface{})["_id"], hit.(map[string]interface{})["_source"])
 					msg := hit.(map[string]interface{})["_source"]
-					inputCh <- msg
+					inputCh <- msg.(map[string]interface{})
 				}
 
 				logger.Trace.Println(strings.Repeat("=", 37))

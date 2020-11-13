@@ -9,10 +9,10 @@ import (
 
 type Consumer struct {
 	ready   chan bool
-	inputCh chan interface{}
+	inputCh chan map[string]interface{}
 }
 
-func ExecuteGroup(config Config, inputCh chan interface{}, logFile string, verbose bool) {
+func ExecuteGroup(config Config, inputCh chan map[string]interface{}, logFile string, verbose bool) {
 
 	logger.Init(logFile, "Kafka-Consumer-Group", verbose)
 

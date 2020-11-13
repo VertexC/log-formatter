@@ -43,7 +43,7 @@ func Merge(a map[string]interface{}, b map[string]interface{}) {
 	}
 }
 
-func Execute(config Config, inputCh chan interface{}, outputCh chan interface{}, logPath string, verbose bool) {
+func Execute(config Config, inputCh chan map[string]interface{}, outputCh chan interface{}, logPath string, verbose bool) {
 	formatter := New(config, logPath, verbose)
 	labels := map[string]interface{}{}
 	for _, label := range config.Labels {
@@ -55,12 +55,12 @@ func Execute(config Config, inputCh chan interface{}, outputCh chan interface{},
 
 		record := <-inputCh
 		// make message field configurable
-		message := record.(map[string]interface{})["message"].(string)
+		message := record["message"].(string)
 		// FIXME: strict kvMap here into map[string]string?
 		var kvMap map[string]interface{}
 		// FIXME: bad if inside loop
 		if formatter == nil {
-			Merge(result, record.(map[string]interface{}))
+			Merge(result, record)
 			// log.Fatalln(labels)
 			outputCh <- result
 		} else {
