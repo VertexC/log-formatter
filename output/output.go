@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/VertexC/log-formatter/output/console"
 	"github.com/VertexC/log-formatter/output/elasticsearch"
+	"github.com/VertexC/log-formatter/output/kafka"
 	"log"
 	"os"
 )
@@ -11,7 +12,7 @@ import (
 type Config struct {
 	Target   string                 `yaml:"target"`
 	EsCfg    elasticsearch.EsConfig `yaml:"elasticsearch,omitempty"`
-	KafkaCfg KafkaConfig            `yaml:"kafka,omitempty"`
+	KafkaCfg kafka.KafkaConfig      `yaml:"kafka,omitempty"`
 	File     string                 `yaml:"file"`
 }
 
@@ -35,6 +36,8 @@ func Execute(config Config, outputCh chan interface{}, logFile string, verbose b
 	switch config.Target {
 	case "elasticsearch":
 		elasticsearch.Execute(config.EsCfg, outputCh, logFile, verbose)
+	case "kafka":
+		kafka.Execute(config.KafkaCfg, outputCh, logFile, verbose)
 	case "console":
 		console.Execute(outputCh)
 	case "file":

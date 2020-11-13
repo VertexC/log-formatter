@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"errors"
 	"flag"
 	"github.com/VertexC/log-formatter/formatter"
@@ -127,7 +128,8 @@ func main() {
 	logFile := path.Join(config.LogDir, "runtime.log")
 	logger.Init(logFile, "Main", verbose)
 
-	logger.Info.Printf("Get config %+v\n", *config)
+	configPretty, _ := json.MarshalIndent(*config, "", "🐱")
+	logger.Info.Printf("Get config\n %s\n", configPretty)
 
 	// TODO: make it configurable
 	inputCh := make(chan map[string]interface{}, 1000)
