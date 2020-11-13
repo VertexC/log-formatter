@@ -3,8 +3,7 @@ package kafka
 import (
 	"encoding/json"
 	"github.com/Shopify/sarama"
-	"log"
-	"os"
+	"github.com/VertexC/log-formatter/util"
 )
 
 type KafkaConfig struct {
@@ -12,9 +11,11 @@ type KafkaConfig struct {
 	Topic  string `yaml:"topic"`
 }
 
+var logger = new(util.Logger)
+
 func Execute(config KafkaConfig, output chan interface{}, logFile string, verbose bool) {
-	// setup sarama log to stdout
-	sarama.Logger = log.New(os.Stdout, "", log.Ltime)
+	logger.Init(logFile, "[Output-Kafka]", verbose)
+	sarama.Logger = logger.Trace
 
 	// producer config
 	saramCfg := sarama.NewConfig()
@@ -29,13 +30,13 @@ func Execute(config KafkaConfig, output chan interface{}, logFile string, verbos
 	producer, err := sarama.NewSyncProducer([]string{config.Broker}, saramCfg)
 
 	if err != nil {
-		log.Fatalln("Error producer: ", err.Error())
+		logger.Error.Fatalln("Error producer: ", err.Error())
 	}
 
 	for record := range output {
 		data, err := json.Marshal(record)
 		if err != nil {
-			log.Fatalf("Failed to parse json from %+v with err %s", record, err)
+			logger.Error.Printf("Failed to parse json from %+v with err %s", record, err)
 		}
 
 		// publish without goroutene
@@ -51,7 +52,7 @@ func publish(message string, topic string, producer sarama.SyncProducer) {
 	}
 	p, o, err := producer.SendMessage(msg)
 	if err != nil {
-		log.Println("Error publish: ", err.Error())
+		logger.Trace.Println("Error publish: ", err.Error())
 	}
-	log.Printf("Partition: %d Offset: %d", p, o)
+	logger.Trace.Printf("Partition: %d Offset: %d", p, o)
 }

@@ -1,0 +1,4 @@
+log: "logs"
+input: !include "config.modules/input-kafka-test.yml"
+output: !include "config.modules/output-file-test.yml"
+formatter: !include "config.modules/formatter-forward.yml" 

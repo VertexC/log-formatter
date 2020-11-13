@@ -1,3 +1,6 @@
+SHELL := /bin/bash
+
+.PHONY: clean
 clean:
 	echo "a test"
 
@@ -11,16 +14,13 @@ build:
 go-test: 
 	go test -v ./...
 
+.PHONY: services-start
 services-start:
 	docker-compose -f test/docker-compose.yml up -d
 
+.PHONY: services-down
 services-down:
 	docker-compose -f test/docker-compose.yml down
-
-## kafka-consumer-test: consume from kafka and forward message to console
-.PHONY: kafka-consumer-test
-kafka-consumer-test: build
-	timeout --preserve-status 20s ./main -c test/kafka-console-test.yml
 
 .PHONY: file-file-test
 file-file-test: build
@@ -28,17 +28,11 @@ file-file-test: build
 	@[ $(shell wc -l < output-test.txt) -eq $(shell wc -l < test/input-test.txt) ]
 	rm output-test.txt
 
-.PHONY: pipeline-test
-pipeline-test:
+.PHONY: kafka-test
+kafka-test: build
 	$(MAKE) services-start
 	sleep 10s
-	$(MAKE) kafka-consumer-test
-	$(MAKE) file-file-test
+	timeout --preserve-status 20s ./main -c test/file-kafka-test.yml
+	timeout --preserve-status 20s ./main -c test/kafka-file-test.yml
+	@[ $(shell wc -l < output-test.txt) -eq $(shell wc -l < test/input-test.txt) ]
 	$(MAKE) services-down
-
-.PHONY: local-test
-local-test:
-	@echo "======= start go unit test ======"
-	$(MAKE) go-test
-	@echo "======= start pipeline test ======"
-	$(MAKE) pipeline-test

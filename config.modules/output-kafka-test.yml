@@ -1,4 +1,4 @@
 target: "kafka"
 kafka:
   broker: "127.0.0.1:9092"
-  topic: "test-topic"
+  topic: "test"

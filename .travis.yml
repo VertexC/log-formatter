@@ -4,7 +4,7 @@ jobs:
   include:
     - os: linux
       go: master
-      env: TARGET=kafka-consumer-test
+      env: TARGET=kafka-test
     - os: linux
       go: master
       env: TARGET=go-test
