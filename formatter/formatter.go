@@ -3,6 +3,7 @@ package formatter
 import (
 	"github.com/VertexC/log-formatter/formatter/general"
 	"log"
+	"regexp"
 )
 
 type Formatter interface {
@@ -16,9 +17,10 @@ type Label struct {
 }
 
 type Config struct {
-	Type       string         `yaml:"type"`
-	Labels     []Label        `yaml:"labels"`
-	GeneralCfg general.Config `yaml:"general"`
+	Type          string         `yaml:"type"`
+	Labels        []Label        `yaml:"labels"`
+	GeneralCfg    general.Config `yaml:"general"`
+	IncludeFields []string       `yaml:"include_fields"`
 }
 
 func New(config Config, logPath string, verbose bool) Formatter {
@@ -43,6 +45,25 @@ func Merge(a map[string]interface{}, b map[string]interface{}) {
 	}
 }
 
+// TODO: Cache
+func Filter(includeFields []string, record map[string]interface{}) map[string]interface{} {
+	regList := []*regexp.Regexp{}
+	for _, s := range includeFields {
+		regList = append(regList, regexp.MustCompile(s))
+	}
+
+	result := map[string]interface{}{}
+	for k, v := range record {
+		for _, r := range regList {
+			if r.MatchString(k) {
+				result[k] = v
+				break
+			}
+		}
+	}
+	return result
+}
+
 func Execute(config Config, inputCh chan map[string]interface{}, outputCh chan interface{}, logPath string, verbose bool) {
 	formatter := New(config, logPath, verbose)
 	labels := map[string]interface{}{}
@@ -56,6 +77,9 @@ func Execute(config Config, inputCh chan map[string]interface{}, outputCh chan i
 		record := <-inputCh
 		// make message field configurable
 		message := record["message"].(string)
+		// filter fields from source data
+		record = Filter(config.IncludeFields, record)
+		Merge(result, record)
 		// FIXME: strict kvMap here into map[string]string?
 		var kvMap map[string]interface{}
 		// FIXME: bad if inside loop
@@ -67,8 +91,6 @@ func Execute(config Config, inputCh chan map[string]interface{}, outputCh chan i
 			kvMap = formatter.Format(message)
 			if kvMap == nil {
 				continue
-			} else {
-				kvMap["sourceData_"] = record
 			}
 			Merge(result, kvMap)
 			outputCh <- result

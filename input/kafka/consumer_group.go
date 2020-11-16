@@ -2,6 +2,7 @@ package kafka
 
 import (
 	"context"
+	"encoding/json"
 	"github.com/Shopify/sarama"
 	"log"
 	"sync"
@@ -10,6 +11,7 @@ import (
 type Consumer struct {
 	ready   chan bool
 	inputCh chan map[string]interface{}
+	schema  string
 }
 
 func ExecuteGroup(config Config, inputCh chan map[string]interface{}, logFile string, verbose bool) {
@@ -35,6 +37,7 @@ func ExecuteGroup(config Config, inputCh chan map[string]interface{}, logFile st
 	consumer := Consumer{
 		ready:   make(chan bool),
 		inputCh: inputCh,
+		schema:  config.Schema,
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -92,6 +95,22 @@ func (consumer *Consumer) Cleanup(sarama.ConsumerGroupSession) error {
 	return nil
 }
 
+func (consumer *Consumer) decode(val []byte) map[string]interface{} {
+	result := map[string]interface{}{}
+	switch consumer.schema {
+	case "json":
+		err := json.Unmarshal(val, &result)
+		if err != nil {
+			logger.Error.Fatalf("Failed to parse json: %s\n", err)
+		}
+	case "":
+		result["message"] = string(val)
+	default:
+		logger.Error.Fatalf("Invalid decode method: %s\n", consumer.schema)
+	}
+	return result
+}
+
 // ConsumeClaim must start a consumer loop of ConsumerGroupClaim's Messages().
 func (consumer *Consumer) ConsumeClaim(session sarama.ConsumerGroupSession, claim sarama.ConsumerGroupClaim) error {
 
@@ -101,7 +120,7 @@ func (consumer *Consumer) ConsumeClaim(session sarama.ConsumerGroupSession, clai
 	// https://github.com/Shopify/sarama/blob/master/consumer_group.go#L27-L29
 	for message := range claim.Messages() {
 		logger.Trace.Printf("Message claimed: value = %s, timestamp = %v, topic = %s", string(message.Value), message.Timestamp, message.Topic)
-		consumer.inputCh <- map[string]interface{}{"message": string(message.Value)}
+		consumer.inputCh <- consumer.decode(message.Value)
 		session.MarkMessage(message, "")
 	}
 

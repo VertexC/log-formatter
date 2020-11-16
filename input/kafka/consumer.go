@@ -3,7 +3,6 @@ package kafka
 import (
 	"fmt"
 	// "time"
-
 	"github.com/Shopify/sarama"
 	"github.com/VertexC/log-formatter/util"
 )
@@ -16,6 +15,7 @@ type Config struct {
 	GroupName string `default:"log-formatter" yaml:"group_name"`
 	Topic     string `yaml:"topic"`
 	Version   string `default:"2.4.0" yaml:"version"`
+	Schema    string `yaml:"schema"`
 }
 
 func ExecuteClient(input Config, inputCh chan interface{}, logFile string, verbose bool) {
