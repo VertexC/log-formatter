@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"math"
+	"time"
 
 	"github.com/VertexC/log-formatter/util"
 	"github.com/elastic/go-elasticsearch/v8"
@@ -53,10 +54,10 @@ func Execute(output EsConfig, outputCh chan interface{}, logFile string, verbose
 			{ "field1" : "value3" }
 		*/
 
-		// FIXME: tailing messages will get blocked
 		batchSize := int(math.Max(100, float64(output.BatchSize)))
 		logger.Trace.Println(batchSize)
 		var bodyBuf bytes.Buffer
+		startTime := time.Now()
 		for {
 			kvMap := <-outputCh
 			createLine := map[string]interface{}{
@@ -78,7 +79,8 @@ func Execute(output EsConfig, outputCh chan interface{}, logFile string, verbose
 				bodyBuf.WriteByte('\n')
 			}
 			batchSize--
-			if batchSize == 0 {
+			// do request if batch is full or timeout
+			if batchSize == 0 || time.Now().Sub(startTime).Seconds() >= float64(5) {
 				break
 			}
 		}
