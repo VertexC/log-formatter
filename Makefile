@@ -36,3 +36,11 @@ kafka-test: build
 	timeout --preserve-status 20s ./main -c test/kafka-file-test.yml
 	@[ $(shell wc -l < output-test.txt) -eq $(shell wc -l < test/input-test.txt) ]
 	$(MAKE) services-down
+	rm output-test.txt
+
+.PHONY: docker-push
+docker-push-linux:
+	GOOS=linux go build main.go
+	docker build --tag log-formatter .
+	docker tag log-formatter vertexc/log-formatter
+	docker push vertexc/log-formatter:latest
