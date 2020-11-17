@@ -9,10 +9,14 @@ clean:
 build:
 	go build main.go
 
+.PHONY: build-linux
+build-linux:
+	GOOS=linux go build main.go
+
 ## go-test: go unit test
 .PHONY: go-test
 go-test: 
-	go test -v ./...
+	go test -v ./... -race -coverprofile=coverage.txt -covermode=atomic
 
 .PHONY: services-start
 services-start:
@@ -39,8 +43,13 @@ kafka-test: build
 	rm output-test.txt
 
 .PHONY: docker-push
-docker-push-linux:
-	GOOS=linux go build main.go
+docker-push:
 	docker build --tag log-formatter .
 	docker tag log-formatter vertexc/log-formatter
 	docker push vertexc/log-formatter:latest
+
+.PHONY: docker-push-local
+docker-push-local: | build docker-push
+
+.PHONY: docker-push-linux
+docker-push-linux: | build-linux docker-push
