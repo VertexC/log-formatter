@@ -25,8 +25,8 @@ services-down:
 .PHONY: file-file-test
 file-file-test: build
 	timeout --preserve-status 20s ./main -c test/file-file-test.yml
-	@[ $(shell wc -l < output-test.txt) -eq $(shell wc -l < test/input-test.txt) ]
-	rm output-test.txt
+	@sh test/check-same-line.sh test/input-test.txt output-test.txt
+	@rm output-test.txt
 
 .PHONY: kafka-test
 kafka-test: build
@@ -34,7 +34,7 @@ kafka-test: build
 	sleep 10s
 	timeout --preserve-status 20s ./main -c test/file-kafka-test.yml
 	timeout --preserve-status 20s ./main -c test/kafka-file-test.yml
-	@[ $(shell wc -l < output-test.txt) -eq $(shell wc -l < test/input-test.txt) ]
+	@sh test/check-same-line.sh test/input-test.txt output-test.txt
 	$(MAKE) services-down
 	rm output-test.txt
 
