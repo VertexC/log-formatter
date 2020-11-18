@@ -75,7 +75,8 @@ func (pipeline *Pipeline) Run () {
 	for doc := range pipeline.inputCh {
 		discard := false
 		for _, fmt := range pipeline.formatters {
-			doc , err := fmt.Format(doc)
+			var err error
+			doc , err = fmt.Format(doc)
 			if err != nil {
 				discard = true
 				pipeline.logger.Warning.Printf("Discard doc:%s **with err** %s", doc, err)

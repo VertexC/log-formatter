@@ -45,8 +45,8 @@ kafka-test: build
 .PHONY: docker-push
 docker-push:
 	docker build --tag log-formatter .
-	docker tag log-formatter vertexc/log-formatter
-	docker push vertexc/log-formatter:latest
+	docker tag log-formatter vertexc/log-formatter:$(docker-version)
+	docker push vertexc/log-formatter
 
 .PHONY: docker-push-local
 docker-push-local: | build docker-push
