@@ -3,3 +3,4 @@ main
 local.modules
 *local.yml
 *coverage.txt
+.vscode

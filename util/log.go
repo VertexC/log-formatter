@@ -8,6 +8,11 @@ import (
 	"os"
 )
 
+var (
+	LogFile string = "logs/runtime.log"
+	Verbose bool = false
+)
+
 type Logger struct {
 	Trace   *log.Logger
 	Info    *log.Logger
@@ -16,11 +21,12 @@ type Logger struct {
 	Debug   *log.Logger
 }
 
-func (logger *Logger) Init(logFile string, prefix string, verbose bool) {
+func NewLogger(prefix string) (logger *Logger) {
+	logger = new(Logger)
 	stdoutWriters := []io.Writer{os.Stdout}
 	stderrWriters := []io.Writer{os.Stderr}
-	if logFile != "" {
-		file, err := os.OpenFile(logFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if LogFile != "" {
+		file, err := os.OpenFile(LogFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 		if err != nil {
 			log.Fatalln("Failed to open error log file:", err)
 		}
@@ -48,10 +54,11 @@ func (logger *Logger) Init(logFile string, prefix string, verbose bool) {
 		fmt.Sprintf("[%s DEBUG]: ", prefix),
 		log.Ldate|log.Ltime|log.Lshortfile)
 
-	if !verbose {
+	if !Verbose {
 		logger.Warning.SetOutput(ioutil.Discard)
 		logger.Trace.SetOutput(ioutil.Discard)
 	}
+	return
 }
 
 func (logger *Logger) DiscardAll() {
