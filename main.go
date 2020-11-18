@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"flag"
-	"github.com/VertexC/log-formatter/formatter"
+	"github.com/VertexC/log-formatter/pipeline"
 	"github.com/VertexC/log-formatter/input"
 	"github.com/VertexC/log-formatter/output"
 	"github.com/VertexC/log-formatter/util"
@@ -71,7 +71,7 @@ type Config struct {
 	LogDir string           `yaml:"log" default:"logs"`
 	OutCfg output.Config    `yaml:"output"`
 	InCfg  input.Config     `yaml:"input"`
-	FmtCfg formatter.Config `yaml:"formatter"`
+	PipelineCfg pipeline.PipelineConfig `yaml:"pipeline"`
 }
 
 var configFilePath = flag.String("c", "config.yml", "config file path")
@@ -124,16 +124,16 @@ func main() {
 	}
 
 	config, verbose := Init()
+	util.Verbose = verbose
+	util.LogFile = path.Join(config.LogDir, "runtime.log")
+	logger = util.NewLogger("Main")
 
-	logFile := path.Join(config.LogDir, "runtime.log")
-	logger.Init(logFile, "Main", verbose)
-
-	configPretty, _ := json.MarshalIndent(*config, "", "🐱")
+	configPretty, _ := json.MarshalIndent(*config, "", "\t")
 	logger.Info.Printf("Get config\n %s\n", configPretty)
 
 	// TODO: make it configurable
 	inputCh := make(chan map[string]interface{}, 1000)
-	outputCh := make(chan interface{}, 1000)
+	outputCh := make(chan map[string]interface{}, 1000)
 	doneCh := make(chan struct{})
 
 	sigterm := make(chan os.Signal, 1)
@@ -146,13 +146,12 @@ func main() {
 			doneCh <- struct{}{}
 		}
 	}()
-
-	logger.Info.Println("Start Input Routine")
-	go input.Execute(config.InCfg, inputCh, logFile, verbose)
-	logger.Info.Println("Start Formatter Routine")
-	go formatter.Execute(config.FmtCfg, inputCh, outputCh, logFile, verbose)
-	logger.Info.Println("Start Output Routine")
-	go output.Execute(config.OutCfg, outputCh, logFile, verbose)
+	
+	pipeline := pipeline.NewPipeline(config.PipelineCfg, inputCh, outputCh)
+	go pipeline.Run()
+	
+	go input.Execute(config.InCfg, inputCh)
+	go output.Execute(config.OutCfg, outputCh)
 
 	<-doneCh
 }

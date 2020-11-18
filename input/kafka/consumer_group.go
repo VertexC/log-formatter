@@ -6,6 +6,8 @@ import (
 	"github.com/Shopify/sarama"
 	"log"
 	"sync"
+
+	"github.com/VertexC/log-formatter/util"
 )
 
 type Consumer struct {
@@ -14,9 +16,20 @@ type Consumer struct {
 	schema  string
 }
 
-func ExecuteGroup(config Config, inputCh chan map[string]interface{}, logFile string, verbose bool) {
+type Config struct {
+	Broker    string `yaml:"broker"`
+	BatchSize int    `default:"1000" yaml:"batch_size"`
+	GroupName string `default:"log-formatter" yaml:"group_name"`
+	Topic     string `yaml:"topic"`
+	Version   string `default:"2.4.0" yaml:"version"`
+	Schema    string `yaml:"schema"`
+}
 
-	logger.Init(logFile, "Kafka-Consumer-Group", verbose)
+var logger *util.Logger
+
+func ExecuteGroup(config Config, inputCh chan map[string]interface{}) {
+
+	logger = util.NewLogger("Kafka-Consumer-Group")
 
 	sarama.Logger = logger.Trace
 

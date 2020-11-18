@@ -29,16 +29,16 @@ func readFile(filePath string, inputCh chan map[string]interface{}) {
 	}
 
 	if err := scanner.Err(); err != nil {
-		log.Fatal(err)
+		log.Fatalf("Failed to read from file %s", err)
 	}
 }
 
-func Execute(config Config, inputCh chan map[string]interface{}, logFile string, verbose bool) {
+func Execute(config Config, inputCh chan map[string]interface{}) {
 	switch config.Target {
 	case "elasticsearch":
-		elasticsearch.Execute(config.EsCfg, inputCh, logFile, verbose)
+		elasticsearch.Execute(config.EsCfg, inputCh)
 	case "kafka":
-		kafka.ExecuteGroup(config.KafkaCfg, inputCh, logFile, verbose)
+		kafka.ExecuteGroup(config.KafkaCfg, inputCh)
 	case "file":
 		readFile(config.FilePath, inputCh)
 	default:

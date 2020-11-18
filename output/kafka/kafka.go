@@ -13,8 +13,8 @@ type KafkaConfig struct {
 
 var logger = new(util.Logger)
 
-func Execute(config KafkaConfig, output chan interface{}, logFile string, verbose bool) {
-	logger.Init(logFile, "[Output-Kafka]", verbose)
+func Execute(config KafkaConfig, output chan map[string]interface{}) {
+	logger = util.NewLogger("[Output-Kafka]")
 	sarama.Logger = logger.Trace
 
 	// producer config
@@ -33,10 +33,10 @@ func Execute(config KafkaConfig, output chan interface{}, logFile string, verbos
 		logger.Error.Fatalln("Error producer: ", err.Error())
 	}
 
-	for record := range output {
-		data, err := json.Marshal(record)
+	for doc := range output {
+		data, err := json.Marshal(doc)
 		if err != nil {
-			logger.Error.Printf("Failed to parse json from %+v with err %s", record, err)
+			logger.Error.Printf("Failed to parse json from %+v with err %s", doc, err)
 		}
 
 		// publish without goroutene

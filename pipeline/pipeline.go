@@ -1,11 +1,7 @@
 package pipeline
 
 import (
-	"github.com/VertexC/log-formatter/pipeline/formatter"
-	"log"
-	"regexp"
-
-	"gopkg.in/yaml.v3"
+	"github.com/VertexC/log-formatter/util"
 )
 
 type Label struct {
@@ -13,59 +9,53 @@ type Label struct {
 	Val string `yaml: "val"`
 }
 
-type PipelineConfig {
-	FormatterCfgs []formatter.FormatterConfig `yaml:"formatters"`
+type PipelineConfig struct {
+	FormatterCfgs []FormatterConfig `yaml:"formatters"`
+	Labels []Label `yaml:"labels"`
 }
 
 type Pipeline struct {
-	formatters []formatter.Formatter
+	formatters []Formatter
+	inputCh chan map[string]interface{}
+	outputCh chan map[string]interface{}
+	logger *util.Logger
+	// TODO: move labelling to proper component of log-formatter
+	labels map[string]string
 }
 
-func NewPipeline(config PipelineConfig) *Pipeline {
-	fmts := []formatter.Formatter {}
+func NewPipeline(config PipelineConfig, inputCh chan map[string]interface{}, outputCh chan map[string]interface{}) *Pipeline {
+	fmts := []Formatter {}
 	for _, fmtCfg := range config.FormatterCfgs {
-		fmt := formatter.NewFormatter(fmtCfg)
+		fmt := NewFormatter(fmtCfg)
 		fmts = append(fmts, fmt)
 	}
 	pipeline := new(Pipeline)
-	pipeline.formatters := fmts
+	pipeline.formatters = fmts
+	pipeline.labels = map[string]string {}
+	for _, label := range config.Labels {
+		pipeline.labels[label.Key] = label.Val
+	}
+	pipeline.inputCh = inputCh
+	pipeline.outputCh = outputCh
+	pipeline.logger = util.NewLogger("pipeline")
 	return pipeline
 }
 
-// TODO: maybe move to util
-func Merge(a map[string]interface{}, b map[string]interface{}) {
-	for k, v := range b {
-		a[k] = v
-	}
-}
-
-// TODO: Cache
-func Filter(includeFields []string, record map[string]interface{}) map[string]interface{} {
-	regList := []*regexp.Regexp{}
-	for _, s := range includeFields {
-		regList = append(regList, regexp.MustCompile(s))
-	}
-
-	result := map[string]interface{}{}
-	for k, v := range record {
-		for _, r := range regList {
-			if r.MatchString(k) {
-				result[k] = v
-				break
+func (pipeline *Pipeline) Run () {
+	for doc := range pipeline.inputCh {
+		discard := false
+		for _, fmt := range pipeline.formatters {
+			doc , err := fmt.Format(doc)
+			if err != nil {
+				discard = true
+				pipeline.logger.Warning.Printf("Discard doc:%s **with err** %s", doc, err)
 			}
 		}
-	}
-	return result
-}
-
-func (pipeline *Pipeline) Run (inputCh chan map[string]interface{}, outputCh chan interface{}) {
-	for msg := range inputCh {
-		for _, fmt := range pipeline.Formatters {
-			msg, err = fmt.Format(msg)
-			if fmt.BreakOnErr && err != nil {
-				break
+		if !discard {
+			for k,v := range pipeline.labels {
+				doc[k] = v
 			}
+			pipeline.outputCh <- doc
 		}
-		ouputCh <- msg
 	}
 }

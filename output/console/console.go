@@ -2,11 +2,13 @@ package console
 
 import (
 	"log"
+	"encoding/json"
 )
 
-func Execute(recordCh chan interface{}) {
+func Execute(recordCh chan map[string]interface{}) {
 	for {
-		record := <-recordCh
-		log.Printf("[Get Message] %+v\n", record)
+		doc := <-recordCh
+		docPretty, _ := json.MarshalIndent(doc, "", "\t")
+		log.Printf("%s\n", docPretty)
 	}
 }

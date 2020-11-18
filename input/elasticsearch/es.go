@@ -25,8 +25,8 @@ type EsConfig struct {
 	Quries []Query `yaml:"quries"`
 }
 
-func Execute(input EsConfig, inputCh chan map[string]interface{}, logFile string, verbose bool) {
-	logger.Init(logFile, "Input-Es", verbose)
+func Execute(input EsConfig, inputCh chan map[string]interface{}) {
+	logger = util.NewLogger("Input-Es")
 
 	var r map[string]interface{}
 

@@ -16,7 +16,7 @@ type Config struct {
 	File     string                 `yaml:"file"`
 }
 
-func writeFile(file string, outputCh chan interface{}) {
+func writeFile(file string, outputCh chan map[string]interface{}) {
 	f, err := os.OpenFile(file, os.O_CREATE|os.O_WRONLY, 0667)
 	if err != nil {
 		log.Fatalf("Failed to open file %s with error:%s \n", file, err)
@@ -32,12 +32,12 @@ func writeFile(file string, outputCh chan interface{}) {
 	}
 }
 
-func Execute(config Config, outputCh chan interface{}, logFile string, verbose bool) {
+func Execute(config Config, outputCh chan map[string]interface{}) {
 	switch config.Target {
 	case "elasticsearch":
-		elasticsearch.Execute(config.EsCfg, outputCh, logFile, verbose)
+		elasticsearch.Execute(config.EsCfg, outputCh)
 	case "kafka":
-		kafka.Execute(config.KafkaCfg, outputCh, logFile, verbose)
+		kafka.Execute(config.KafkaCfg, outputCh)
 	case "console":
 		console.Execute(outputCh)
 	case "file":

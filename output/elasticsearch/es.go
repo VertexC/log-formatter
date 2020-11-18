@@ -20,8 +20,8 @@ type EsConfig struct {
 
 var logger = new(util.Logger)
 
-func Execute(output EsConfig, outputCh chan interface{}, logFile string, verbose bool) {
-	logger.Init(logFile, "Output-Es", verbose)
+func Execute(output EsConfig, outputCh chan map[string]interface{}) {
+	logger = util.NewLogger("Output-Es")
 
 	// Create a context object for the API calls
 	ctx := context.Background()

@@ -1,11 +1,12 @@
 package parser_test
 
+
 import (
 	"testing"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v3"
-	"github.com/VertexC/log-formatter/pipeline/formatter/parser"
 	"github.com/VertexC/log-formatter/util"
+	"github.com/VertexC/log-formatter/pipeline/parser"
 )
 
 var invalidRegex = `^(?P<id>[a-z]+)\s+(?P<msg>.*?)$`
@@ -42,7 +43,7 @@ func createDefaultConfig() parser.ParserConfig {
 	}
 }
 
-func TestConfigFromYaml(t *testing.T) {
+func TestParserConfigFromYaml(t *testing.T) {
 	config := new(parser.ParserConfig)
 	err := yaml.Unmarshal([]byte(defaultConfigYml), config)
 	if err != nil {
@@ -52,7 +53,7 @@ func TestConfigFromYaml(t *testing.T) {
 	assert.Equal(t, defaultCfg, *config)
 }
 
-func TestParseWithDefaultConfig(t *testing.T) {
+func TestParserFormatWithDefaultConfig(t *testing.T) {
 	expectedDoc := map[string]interface{} {
 		"id":"123",
 		"context":"HELLO",
@@ -62,8 +63,8 @@ func TestParseWithDefaultConfig(t *testing.T) {
 		"user": "vertexc",
 	}
 	defaultCfg := createDefaultConfig()
-	formatter := parser.NewParser(defaultCfg)
-	result, err := formatter.Format(doc)
+	p := parser.NewParser(defaultCfg)
+	result, err := p.Format(doc)
 	assert.Equal(t, err, nil)
 	assert.Equal(t, expectedDoc, result)
 }
