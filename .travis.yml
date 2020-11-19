@@ -16,10 +16,19 @@ jobs:
       after_script:
         - bash <(curl -s https://codecov.io/bash)
     - stage: ship
+      if: branch = master
       os: linux
       go: master
       env: TARGET=docker-push-local
       script: make docker-push-local docker-version=latest
+      before_script:
+        - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+    - stage: ship
+      if: branch != master
+      os: linux
+      go: master
+      env: TARGET=docker-push-local
+      script: make docker-push-local docker-version=$TRAVIS_BRANCH
       before_script:
         - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin 
 
