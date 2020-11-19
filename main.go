@@ -70,7 +70,7 @@ func resolveIncludes(node *yaml.Node) (*yaml.Node, error) {
 type Config struct {
 	LogDir string           `yaml:"log" default:"logs"`
 	OutCfg output.Config    `yaml:"output"`
-	InCfg  input.Config     `yaml:"input"`
+	InCfg  input.InputConfig     `yaml:"input"`
 	PipelineCfg pipeline.PipelineConfig `yaml:"pipeline"`
 }
 
@@ -148,9 +148,11 @@ func main() {
 	}()
 	
 	pipeline := pipeline.NewPipeline(config.PipelineCfg, inputCh, outputCh)
-	go pipeline.Run()
+	input := input.NewInput(config.InCfg, inputCh)
 	
-	go input.Execute(config.InCfg, inputCh)
+	go pipeline.Run()
+	go input.Run()
+
 	go output.Execute(config.OutCfg, outputCh)
 
 	<-doneCh

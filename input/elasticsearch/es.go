@@ -8,11 +8,8 @@ import (
 	"time"
 
 	"github.com/VertexC/log-formatter/util"
-
 	"github.com/elastic/go-elasticsearch/v8"
 )
-
-var logger = new(util.Logger)
 
 type Query struct {
 	Index string `yaml:"index"`
@@ -25,15 +22,23 @@ type EsConfig struct {
 	Quries []Query `yaml:"quries"`
 }
 
-func Execute(input EsConfig, inputCh chan map[string]interface{}) {
-	logger = util.NewLogger("Input-Es")
+type EsInput struct {
+	docCh chan map[string]interface{}
+	config EsConfig
+	logger *util.Logger
+	es *elasticsearch.Client
+}
+
+func NewEsInput(config EsConfig, docCh chan map[string]interface{}) * EsInput {
+
+	logger := util.NewLogger("elastic-input")
 
 	var r map[string]interface{}
 
 	// Initialize a client
 	cfg := elasticsearch.Config{
 		Addresses: []string{
-			input.Host,
+			config.Host,
 		},
 	}
 	es, err := elasticsearch.NewClient(cfg)
@@ -62,8 +67,22 @@ func Execute(input EsConfig, inputCh chan map[string]interface{}) {
 	logger.Info.Printf("Client: %s\n", elasticsearch.Version)
 	logger.Info.Printf("Server: %s\n", r["version"].(map[string]interface{})["number"])
 
+	input := &EsInput {
+		docCh: docCh,
+		config: config,
+		logger: logger,
+		es: es,
+	}
+
+	return input
+}
+
+func (input *EsInput) Run() {
+	
+	logger := input.logger
+	var r map[string]interface{}
 	// Build the request body.
-	for _, query := range input.Quries {
+	for _, query := range input.config.Quries {
 		go func() {
 			for {
 				var buf bytes.Buffer
@@ -71,11 +90,12 @@ func Execute(input EsConfig, inputCh chan map[string]interface{}) {
 				if json.Valid([]byte(query.Body)) {
 					buf.WriteString(query.Body)
 				} else {
-					logger.Error.Fatalf("Error encoding query %s to json\n", query.Body)
+					input.logger.Error.Fatalf("Error encoding query %s to json\n", query.Body)
 				}
 
 				// Perform the search request.
-				res, err = es.Search(
+				es := input.es
+				res, err := es.Search(
 					es.Search.WithContext(context.Background()),
 					es.Search.WithIndex(query.Index),
 					es.Search.WithBody(&buf),
@@ -119,7 +139,7 @@ func Execute(input EsConfig, inputCh chan map[string]interface{}) {
 				for i, hit := range r["hits"].(map[string]interface{})["hits"].([]interface{}) {
 					logger.Trace.Printf("Return Id %d * ID=%s, %s", i, hit.(map[string]interface{})["_id"], hit.(map[string]interface{})["_source"])
 					msg := hit.(map[string]interface{})["_source"]
-					inputCh <- msg.(map[string]interface{})
+					input.docCh <- msg.(map[string]interface{})
 				}
 
 				logger.Trace.Println(strings.Repeat("=", 37))
