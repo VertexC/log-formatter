@@ -11,8 +11,8 @@ import (
 
 type Config struct {
 	Target   string                 `yaml:"target"`
-	EsCfg    elasticsearch.EsConfig `yaml:"elasticsearch,omitempty"`
-	KafkaCfg kafka.Config           `yaml:"kafka,omitempty"`
+	EsCfg    *elasticsearch.EsConfig `yaml:"elasticsearch,omitempty"`
+	KafkaCfg *kafka.Config           `yaml:"kafka,omitempty"`
 	FilePath string                 `yaml:"file"`
 }
 
@@ -36,9 +36,9 @@ func readFile(filePath string, inputCh chan map[string]interface{}) {
 func Execute(config Config, inputCh chan map[string]interface{}) {
 	switch config.Target {
 	case "elasticsearch":
-		elasticsearch.Execute(config.EsCfg, inputCh)
+		elasticsearch.Execute(*config.EsCfg, inputCh)
 	case "kafka":
-		kafka.ExecuteGroup(config.KafkaCfg, inputCh)
+		kafka.ExecuteGroup(*config.KafkaCfg, inputCh)
 	case "file":
 		readFile(config.FilePath, inputCh)
 	default:

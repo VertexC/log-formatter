@@ -11,8 +11,8 @@ import (
 
 type Config struct {
 	Target   string                 `yaml:"target"`
-	EsCfg    elasticsearch.EsConfig `yaml:"elasticsearch,omitempty"`
-	KafkaCfg kafka.KafkaConfig      `yaml:"kafka,omitempty"`
+	EsCfg    *elasticsearch.EsConfig `yaml:"elasticsearch,omitempty"`
+	KafkaCfg *kafka.KafkaConfig      `yaml:"kafka,omitempty"`
 	File     string                 `yaml:"file"`
 }
 
@@ -35,9 +35,9 @@ func writeFile(file string, outputCh chan map[string]interface{}) {
 func Execute(config Config, outputCh chan map[string]interface{}) {
 	switch config.Target {
 	case "elasticsearch":
-		elasticsearch.Execute(config.EsCfg, outputCh)
+		elasticsearch.Execute(*config.EsCfg, outputCh)
 	case "kafka":
-		kafka.Execute(config.KafkaCfg, outputCh)
+		kafka.Execute(*config.KafkaCfg, outputCh)
 	case "console":
 		console.Execute(outputCh)
 	case "file":

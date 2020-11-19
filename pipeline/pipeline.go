@@ -18,18 +18,16 @@ type Formatter interface {
 
 type FormatterConfig struct {
 	Type          string         `yaml:"type"`
-	ParserCfg    parser.ParserConfig `yaml:"parser"`
-	FilterCfg filter.FilterConfig `yaml:"filter"`
-	// Labeller Labeller `yaml:"include_fields"`
-	// stop forward the message in pipeline if set
+	ParserCfg    *parser.ParserConfig `yaml:"parser"`
+	FilterCfg *filter.FilterConfig `yaml:"filter"`
 }
 
 func NewFormatter(config FormatterConfig) Formatter {
 	switch config.Type {
 	case "parser":
-		return parser.NewParser(config.ParserCfg)
+		return parser.NewParser(*config.ParserCfg)
 	case "filter":
-		formatter, err := filter.NewFilter(config.FilterCfg)
+		formatter, err := filter.NewFilter(*config.FilterCfg)
 		if err != nil {
 			log.Fatalf("Error when create filter: %s:", err)
 		}
