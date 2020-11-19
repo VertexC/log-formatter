@@ -1,37 +1,37 @@
 package file
 
 import (
-	"os"
 	"bufio"
+	"os"
 
 	"log"
 )
 
 type FileInput struct {
 	fileInput string
-	f *os.File
-	scanner *bufio.Scanner
-	docCh chan map[string]interface{}
+	f         *os.File
+	scanner   *bufio.Scanner
+	docCh     chan map[string]interface{}
 }
 
-func NewFileInput(filePath string, docCh chan map[string]interface{}) (*FileInput) {
-	
+func NewFileInput(filePath string, docCh chan map[string]interface{}) *FileInput {
+
 	f, err := os.OpenFile(filePath, os.O_RDONLY, 0666)
 	if err != nil {
 		panic(err)
 	}
 	scanner := bufio.NewScanner(f)
-	fileInput := &FileInput {
-		f: f,
+	fileInput := &FileInput{
+		f:       f,
 		scanner: scanner,
-		docCh: docCh,
+		docCh:   docCh,
 	}
 	return fileInput
 }
 
 func (input *FileInput) Run() {
 	defer input.f.Close()
-	
+
 	for input.scanner.Scan() {
 		input.docCh <- map[string]interface{}{"message": input.scanner.Text()}
 	}

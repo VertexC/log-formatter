@@ -11,9 +11,9 @@ import (
 )
 
 type Consumer struct {
-	ready   chan bool
-	docCh chan map[string]interface{}
-	schema  string
+	ready  chan bool
+	docCh  chan map[string]interface{}
+	schema string
 	logger *util.Logger
 }
 
@@ -26,14 +26,14 @@ type KafkaConfig struct {
 	Schema    string `yaml:"schema"`
 }
 
-type KafkaInput struct{
-	logger *util.Logger
+type KafkaInput struct {
+	logger   *util.Logger
 	consumer *Consumer
-	client sarama.ConsumerGroup
-	config KafkaConfig
+	client   sarama.ConsumerGroup
+	config   KafkaConfig
 }
 
-func NewKafkaInput(config KafkaConfig, docCh chan map[string]interface{}) *KafkaInput{
+func NewKafkaInput(config KafkaConfig, docCh chan map[string]interface{}) *KafkaInput {
 	logger := util.NewLogger("kafka-consumer")
 
 	sarama.Logger = logger.Trace
@@ -52,24 +52,23 @@ func NewKafkaInput(config KafkaConfig, docCh chan map[string]interface{}) *Kafka
 	}
 
 	consumer := &Consumer{
-		ready:   make(chan bool),
-		docCh: docCh,
-		schema:  config.Schema,
+		ready:  make(chan bool),
+		docCh:  docCh,
+		schema: config.Schema,
 		logger: logger,
 	}
-	
+
 	brokers := []string{config.Broker}
 	client, err := sarama.NewConsumerGroup(brokers, config.GroupName, saramaCfg)
 	if err != nil {
 		log.Panicf("Error creating consumer group client: %v", err)
 	}
 
-
-	input := &KafkaInput {
-		logger: logger,
-		config: config,
+	input := &KafkaInput{
+		logger:   logger,
+		config:   config,
 		consumer: consumer,
-		client: client,
+		client:   client,
 	}
 
 	return input

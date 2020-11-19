@@ -2,15 +2,15 @@ package input
 
 import (
 	"github.com/VertexC/log-formatter/input/elasticsearch"
-	"github.com/VertexC/log-formatter/input/kafka"
 	"github.com/VertexC/log-formatter/input/file"
+	"github.com/VertexC/log-formatter/input/kafka"
 )
 
 type InputConfig struct {
-	Target   string                 `yaml:"target"`
+	Target   string                  `yaml:"target"`
 	EsCfg    *elasticsearch.EsConfig `yaml:"elasticsearch,omitempty"`
-	KafkaCfg *kafka.KafkaConfig           `yaml:"kafka,omitempty"`
-	FilePath string                 `yaml:"file"`
+	KafkaCfg *kafka.KafkaConfig      `yaml:"kafka,omitempty"`
+	FilePath string                  `yaml:"file"`
 }
 
 type Input interface {

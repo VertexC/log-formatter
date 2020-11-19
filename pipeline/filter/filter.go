@@ -1,12 +1,12 @@
 package filter
 
 import (
-	"regexp"
 	"errors"
 	"github.com/VertexC/log-formatter/util"
+	"regexp"
 )
 
-type FilterConfig struct{
+type FilterConfig struct {
 	IncludeFields []string `yaml:"include_fields"`
 	ExcludeFields []string `yaml:"exclude_fields"`
 	// TODO: to accelerate filtering fixed fields
@@ -17,7 +17,7 @@ type FilterConfig struct{
 type Filter struct {
 	IncludeRegex []*regexp.Regexp
 	ExcludeRegex []*regexp.Regexp
-	logger *util.Logger
+	logger       *util.Logger
 }
 
 func NewFilter(config FilterConfig) (*Filter, error) {
@@ -38,12 +38,12 @@ func NewFilter(config FilterConfig) (*Filter, error) {
 	return filter, nil
 }
 
-func (filter * Filter) Format(doc map[string]interface{}) (map[string]interface{}, error) {
+func (filter *Filter) Format(doc map[string]interface{}) (map[string]interface{}, error) {
 	result := map[string]interface{}{}
 	for field, val := range doc {
 		for _, r := range filter.IncludeRegex {
 			if r.MatchString(field) {
-				result[field] = val 
+				result[field] = val
 				break
 			}
 		}

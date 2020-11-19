@@ -10,7 +10,7 @@ import (
 
 var (
 	LogFile string = "logs/runtime.log"
-	Verbose bool = false
+	Verbose bool   = false
 )
 
 type Logger struct {

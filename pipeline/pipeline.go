@@ -1,10 +1,10 @@
 package pipeline
 
 import (
-	"log"
-	"github.com/VertexC/log-formatter/pipeline/parser"
 	"github.com/VertexC/log-formatter/pipeline/filter"
+	"github.com/VertexC/log-formatter/pipeline/parser"
 	"github.com/VertexC/log-formatter/util"
+	"log"
 )
 
 type Label struct {
@@ -17,8 +17,8 @@ type Formatter interface {
 }
 
 type FormatterConfig struct {
-	Type          string         `yaml:"type"`
-	ParserCfg    *parser.ParserConfig `yaml:"parser"`
+	Type      string               `yaml:"type"`
+	ParserCfg *parser.ParserConfig `yaml:"parser"`
 	FilterCfg *filter.FilterConfig `yaml:"filter"`
 }
 
@@ -39,27 +39,27 @@ func NewFormatter(config FormatterConfig) Formatter {
 
 type PipelineConfig struct {
 	FormatterCfgs []FormatterConfig `yaml:"formatters"`
-	Labels []Label `yaml:"labels"`
+	Labels        []Label           `yaml:"labels"`
 }
 
 type Pipeline struct {
 	formatters []Formatter
-	inputCh chan map[string]interface{}
-	outputCh chan map[string]interface{}
-	logger *util.Logger
+	inputCh    chan map[string]interface{}
+	outputCh   chan map[string]interface{}
+	logger     *util.Logger
 	// TODO: move labelling to proper component of log-formatter
 	labels map[string]string
 }
 
 func NewPipeline(config PipelineConfig, inputCh chan map[string]interface{}, outputCh chan map[string]interface{}) *Pipeline {
-	fmts := []Formatter {}
+	fmts := []Formatter{}
 	for _, fmtCfg := range config.FormatterCfgs {
 		fmt := NewFormatter(fmtCfg)
 		fmts = append(fmts, fmt)
 	}
 	pipeline := new(Pipeline)
 	pipeline.formatters = fmts
-	pipeline.labels = map[string]string {}
+	pipeline.labels = map[string]string{}
 	for _, label := range config.Labels {
 		pipeline.labels[label.Key] = label.Val
 	}
@@ -69,19 +69,19 @@ func NewPipeline(config PipelineConfig, inputCh chan map[string]interface{}, out
 	return pipeline
 }
 
-func (pipeline *Pipeline) Run () {
+func (pipeline *Pipeline) Run() {
 	for doc := range pipeline.inputCh {
 		discard := false
 		for _, fmt := range pipeline.formatters {
 			var err error
-			doc , err = fmt.Format(doc)
+			doc, err = fmt.Format(doc)
 			if err != nil {
 				discard = true
 				pipeline.logger.Warning.Printf("Discard doc:%s **with err** %s", doc, err)
 			}
 		}
 		if !discard {
-			for k,v := range pipeline.labels {
+			for k, v := range pipeline.labels {
 				doc[k] = v
 			}
 			pipeline.outputCh <- doc

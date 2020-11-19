@@ -18,18 +18,19 @@ type EsConfig struct {
 	BatchSize int    `yaml:"batchsize"`
 }
 
-var logger = new(util.Logger)
+type EsOutput struct {
+	logger *util.Logger
+	docCh  chan map[string]interface{}
+	config EsConfig
+	client *elasticsearch.Client
+}
 
-func Execute(output EsConfig, outputCh chan map[string]interface{}) {
-	logger = util.NewLogger("Output-Es")
-
-	// Create a context object for the API calls
-	ctx := context.Background()
-
+func NewEsOutput(config EsConfig, docCh chan map[string]interface{}) *EsOutput {
+	logger := util.NewLogger("elastic-output")
 	// Declare an Elasticsearch configuration
 	cfg := elasticsearch.Config{
 		Addresses: []string{
-			output.Host,
+			config.Host,
 		},
 	}
 
@@ -46,6 +47,20 @@ func Execute(output EsConfig, outputCh chan map[string]interface{}) {
 	} else {
 		logger.Info.Println("client response:", res)
 	}
+	output := &EsOutput{
+		logger: logger,
+		docCh:  docCh,
+		config: config,
+		client: client,
+	}
+	return output
+}
+
+func (output *EsOutput) Run() {
+	logger := output.logger
+
+	// Create a context object for the API calls
+	ctx := context.Background()
 
 	for {
 		/*
@@ -54,15 +69,15 @@ func Execute(output EsConfig, outputCh chan map[string]interface{}) {
 			{ "field1" : "value3" }
 		*/
 
-		batchSize := int(math.Max(100, float64(output.BatchSize)))
+		batchSize := int(math.Max(100, float64(output.config.BatchSize)))
 		logger.Trace.Println(batchSize)
 		var bodyBuf bytes.Buffer
 		startTime := time.Now()
 		for {
-			kvMap := <-outputCh
+			kvMap := <-output.docCh
 			createLine := map[string]interface{}{
 				"create": map[string]interface{}{
-					"_index": output.Index,
+					"_index": output.config.Index,
 				},
 			}
 			if jsonStr, err := json.Marshal(createLine); err != nil {
@@ -95,7 +110,7 @@ func Execute(output EsConfig, outputCh chan map[string]interface{}) {
 
 		go func() {
 			// Return an API response object from request
-			res, err := req.Do(ctx, client)
+			res, err := req.Do(ctx, output.client)
 			if err != nil {
 				logger.Error.Fatalf("IndexRequest ERROR: %s\n", err)
 			}

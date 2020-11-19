@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 	"flag"
-	"github.com/VertexC/log-formatter/pipeline"
 	"github.com/VertexC/log-formatter/input"
 	"github.com/VertexC/log-formatter/output"
+	"github.com/VertexC/log-formatter/pipeline"
 	"github.com/VertexC/log-formatter/util"
 	"github.com/pkg/profile"
 	"gopkg.in/yaml.v3"
@@ -68,9 +68,9 @@ func resolveIncludes(node *yaml.Node) (*yaml.Node, error) {
 }
 
 type Config struct {
-	LogDir string           `yaml:"log" default:"logs"`
-	OutCfg output.Config    `yaml:"output"`
-	InCfg  input.InputConfig     `yaml:"input"`
+	LogDir      string                  `yaml:"log" default:"logs"`
+	OutCfg      output.OutputConfig     `yaml:"output"`
+	InCfg       input.InputConfig       `yaml:"input"`
 	PipelineCfg pipeline.PipelineConfig `yaml:"pipeline"`
 }
 
@@ -146,14 +146,13 @@ func main() {
 			doneCh <- struct{}{}
 		}
 	}()
-	
+
 	pipeline := pipeline.NewPipeline(config.PipelineCfg, inputCh, outputCh)
 	input := input.NewInput(config.InCfg, inputCh)
-	
+	output := output.NewOutput(config.OutCfg, outputCh)
 	go pipeline.Run()
 	go input.Run()
-
-	go output.Execute(config.OutCfg, outputCh)
+	go output.Run()
 
 	<-doneCh
 }

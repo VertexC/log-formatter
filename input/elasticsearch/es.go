@@ -23,13 +23,13 @@ type EsConfig struct {
 }
 
 type EsInput struct {
-	docCh chan map[string]interface{}
+	docCh  chan map[string]interface{}
 	config EsConfig
 	logger *util.Logger
-	es *elasticsearch.Client
+	es     *elasticsearch.Client
 }
 
-func NewEsInput(config EsConfig, docCh chan map[string]interface{}) * EsInput {
+func NewEsInput(config EsConfig, docCh chan map[string]interface{}) *EsInput {
 
 	logger := util.NewLogger("elastic-input")
 
@@ -67,18 +67,18 @@ func NewEsInput(config EsConfig, docCh chan map[string]interface{}) * EsInput {
 	logger.Info.Printf("Client: %s\n", elasticsearch.Version)
 	logger.Info.Printf("Server: %s\n", r["version"].(map[string]interface{})["number"])
 
-	input := &EsInput {
-		docCh: docCh,
+	input := &EsInput{
+		docCh:  docCh,
 		config: config,
 		logger: logger,
-		es: es,
+		es:     es,
 	}
 
 	return input
 }
 
 func (input *EsInput) Run() {
-	
+
 	logger := input.logger
 	var r map[string]interface{}
 	// Build the request body.

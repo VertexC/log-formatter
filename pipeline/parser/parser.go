@@ -13,7 +13,7 @@ type Label struct {
 
 type ParserConfig struct {
 	// ComponentsRegex is regexpr with components as groupname. To discard a component, add _ behind groupname like (?P<foo_>)
-	ComponentsRegex  string  `yaml:"components_regex"`
+	ComponentsRegex string `yaml:"components_regex"`
 	// Labels further extract label form certain component based on regexpr
 	Labels []Label `yaml:"labels"`
 	// TargetField specify which field to parse
@@ -29,7 +29,7 @@ type Parser struct {
 
 // TODO: finish regexpr compile jobs while new parser
 func NewParser(parserCfg ParserConfig) (parser *Parser) {
-	parser = new(Parser)  
+	parser = new(Parser)
 	parser.config = parserCfg
 	parser.logger = util.NewLogger("pipeline-parser")
 	return
@@ -43,7 +43,7 @@ func (parser *Parser) Format(doc map[string]interface{}) (map[string]interface{}
 		} else {
 			return doc, fmt.Errorf("Target field %s not found", parser.config.TargetField)
 		}
-	} 
+	}
 	componentMap, err := reSubMatchMap(parser.config.ComponentsRegex, target.(string))
 	if err != nil {
 		parser.logger.Error.Printf("Error occurs while get compponents: %s\n", err)
