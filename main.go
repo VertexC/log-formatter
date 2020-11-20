@@ -139,6 +139,7 @@ func main() {
 	sigterm := make(chan os.Signal, 1)
 	signal.Notify(sigterm, syscall.SIGINT, syscall.SIGTERM)
 
+	// go routine to catch signal interrupt
 	go func() {
 		select {
 		case <-sigterm:
