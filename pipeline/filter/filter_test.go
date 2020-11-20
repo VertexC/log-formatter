@@ -14,7 +14,7 @@ include_fields:
   - u.*
   - messagXXX
 `
-var doc = map[string]interface{}{"message": "123 [HELLO] hello foo", "user": "vertexc"}
+var doc = util.Doc{"message": "123 [HELLO] hello foo", "user": "vertexc"}
 
 func init() {
 	util.LogFile = ""
@@ -37,7 +37,7 @@ func TestNewFromConfig(t *testing.T) {
 }
 
 func TestParseWithDefaultConfig(t *testing.T) {
-	expectedDoc := map[string]interface{}{
+	expectedDoc := util.Doc{
 		"user": "vertexc",
 	}
 	defaultCfg := createDefaultConfig()

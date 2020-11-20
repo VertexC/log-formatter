@@ -4,6 +4,7 @@ import (
 	"github.com/VertexC/log-formatter/input/elasticsearch"
 	"github.com/VertexC/log-formatter/input/file"
 	"github.com/VertexC/log-formatter/input/kafka"
+	"github.com/VertexC/log-formatter/util"
 )
 
 type InputConfig struct {
@@ -18,7 +19,7 @@ type Input interface {
 	Run()
 }
 
-func NewInput(config InputConfig, inputCh chan map[string]interface{}) (input Input) {
+func NewInput(config InputConfig, inputCh chan util.Doc) (input Input) {
 	switch config.Target {
 	case "elasticsearch":
 		input = elasticsearch.NewEsInput(*config.EsCfg, inputCh)

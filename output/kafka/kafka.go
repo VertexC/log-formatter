@@ -13,12 +13,12 @@ type KafkaConfig struct {
 
 type KafkaOutput struct {
 	logger   *util.Logger
-	docCh    chan map[string]interface{}
+	docCh    chan util.Doc
 	producer sarama.SyncProducer
 	config   KafkaConfig
 }
 
-func NewKafkaOutput(config KafkaConfig, docCh chan map[string]interface{}) *KafkaOutput {
+func NewKafkaOutput(config KafkaConfig, docCh chan util.Doc) *KafkaOutput {
 	logger := util.NewLogger("[Output-Kafka]")
 	sarama.Logger = logger.Trace
 

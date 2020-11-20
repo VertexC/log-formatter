@@ -38,8 +38,8 @@ func NewFilter(config FilterConfig) (*Filter, error) {
 	return filter, nil
 }
 
-func (filter *Filter) Format(doc map[string]interface{}) (map[string]interface{}, error) {
-	result := map[string]interface{}{}
+func (filter *Filter) Format(doc util.Doc) (util.Doc, error) {
+	result := util.Doc{}
 	for field, val := range doc {
 		for _, r := range filter.IncludeRegex {
 			if r.MatchString(field) {

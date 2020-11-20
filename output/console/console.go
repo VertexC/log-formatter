@@ -2,14 +2,15 @@ package console
 
 import (
 	"encoding/json"
+	"github.com/VertexC/log-formatter/util"
 	"log"
 )
 
 type Console struct {
-	docCh chan map[string]interface{}
+	docCh chan util.Doc
 }
 
-func NewConsoleOutput(docCh chan map[string]interface{}) *Console {
+func NewConsoleOutput(docCh chan util.Doc) *Console {
 	return &Console{
 		docCh: docCh,
 	}

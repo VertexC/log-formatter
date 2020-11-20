@@ -35,7 +35,7 @@ func NewParser(parserCfg ParserConfig) (parser *Parser) {
 	return
 }
 
-func (parser *Parser) Format(doc map[string]interface{}) (map[string]interface{}, error) {
+func (parser *Parser) Format(doc util.Doc) (util.Doc, error) {
 	target, exist := doc[parser.config.TargetField]
 	if !exist {
 		if parser.config.ErrTolerant {

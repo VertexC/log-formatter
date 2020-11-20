@@ -7,12 +7,12 @@ import (
 )
 
 type FileOutput struct {
-	docCh  chan map[string]interface{}
+	docCh  chan util.Doc
 	logger *util.Logger
 	f      *os.File
 }
 
-func NewFileOutput(filePath string, docCh chan map[string]interface{}) *FileOutput {
+func NewFileOutput(filePath string, docCh chan util.Doc) *FileOutput {
 	logger := util.NewLogger("file-output")
 
 	f, err := os.OpenFile(filePath, os.O_CREATE|os.O_WRONLY, 0667)

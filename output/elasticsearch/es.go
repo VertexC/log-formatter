@@ -20,12 +20,12 @@ type EsConfig struct {
 
 type EsOutput struct {
 	logger *util.Logger
-	docCh  chan map[string]interface{}
+	docCh  chan util.Doc
 	config EsConfig
 	client *elasticsearch.Client
 }
 
-func NewEsOutput(config EsConfig, docCh chan map[string]interface{}) *EsOutput {
+func NewEsOutput(config EsConfig, docCh chan util.Doc) *EsOutput {
 	logger := util.NewLogger("elastic-output")
 	// Declare an Elasticsearch configuration
 	cfg := elasticsearch.Config{
@@ -75,8 +75,8 @@ func (output *EsOutput) Run() {
 		startTime := time.Now()
 		for {
 			kvMap := <-output.docCh
-			createLine := map[string]interface{}{
-				"create": map[string]interface{}{
+			createLine := util.Doc{
+				"create": util.Doc{
 					"_index": output.config.Index,
 				},
 			}
@@ -119,7 +119,7 @@ func (output *EsOutput) Run() {
 			if res.IsError() {
 				logger.Error.Printf("ERROR indexing document with status: %s", res.Status())
 			} else {
-				var resMap map[string]interface{}
+				var resMap util.Doc
 				decorder := json.NewDecoder(res.Body)
 				if err := decorder.Decode(&resMap); err != nil {
 					logger.Error.Printf("Error parsing the response body: %s\n", err)

@@ -23,17 +23,17 @@ type EsConfig struct {
 }
 
 type EsInput struct {
-	docCh  chan map[string]interface{}
+	docCh  chan util.Doc
 	config EsConfig
 	logger *util.Logger
 	es     *elasticsearch.Client
 }
 
-func NewEsInput(config EsConfig, docCh chan map[string]interface{}) *EsInput {
+func NewEsInput(config EsConfig, docCh chan util.Doc) *EsInput {
 
 	logger := util.NewLogger("elastic-input")
 
-	var r map[string]interface{}
+	var r util.Doc
 
 	// Initialize a client
 	cfg := elasticsearch.Config{
@@ -65,7 +65,7 @@ func NewEsInput(config EsConfig, docCh chan map[string]interface{}) *EsInput {
 	}
 	// Print client and server version numbers.
 	logger.Info.Printf("Client: %s\n", elasticsearch.Version)
-	logger.Info.Printf("Server: %s\n", r["version"].(map[string]interface{})["number"])
+	logger.Info.Printf("Server: %s\n", r["version"].(util.Doc)["number"])
 
 	input := &EsInput{
 		docCh:  docCh,
@@ -80,7 +80,7 @@ func NewEsInput(config EsConfig, docCh chan map[string]interface{}) *EsInput {
 func (input *EsInput) Run() {
 
 	logger := input.logger
-	var r map[string]interface{}
+	var r util.Doc
 	// Build the request body.
 	for _, query := range input.config.Quries {
 		go func() {
@@ -109,7 +109,7 @@ func (input *EsInput) Run() {
 					defer res.Body.Close()
 
 					if res.IsError() {
-						var e map[string]interface{}
+						var e util.Doc
 						if err := json.NewDecoder(res.Body).Decode(&e); err != nil {
 							logger.Error.Println(res.Body)
 							logger.Error.Fatalf("Error parsing the response body: %s", err)
@@ -117,8 +117,8 @@ func (input *EsInput) Run() {
 							// Print the response status and error information.
 							logger.Error.Fatalf("[%s] %s: %s",
 								res.Status(),
-								e["error"].(map[string]interface{})["type"],
-								e["error"].(map[string]interface{})["reason"],
+								e["error"].(util.Doc)["type"],
+								e["error"].(util.Doc)["reason"],
 							)
 						}
 					}
@@ -132,14 +132,14 @@ func (input *EsInput) Run() {
 				logger.Trace.Printf(
 					"[%s] %d hits; took: %dms",
 					res.Status(),
-					int(r["hits"].(map[string]interface{})["total"].(map[string]interface{})["value"].(float64)),
+					int(r["hits"].(util.Doc)["total"].(util.Doc)["value"].(float64)),
 					int(r["took"].(float64)),
 				)
 				// Print the ID and document source for each hit.
-				for i, hit := range r["hits"].(map[string]interface{})["hits"].([]interface{}) {
-					logger.Trace.Printf("Return Id %d * ID=%s, %s", i, hit.(map[string]interface{})["_id"], hit.(map[string]interface{})["_source"])
-					msg := hit.(map[string]interface{})["_source"]
-					input.docCh <- msg.(map[string]interface{})
+				for i, hit := range r["hits"].(util.Doc)["hits"].([]interface{}) {
+					logger.Trace.Printf("Return Id %d * ID=%s, %s", i, hit.(util.Doc)["_id"], hit.(util.Doc)["_source"])
+					msg := hit.(util.Doc)["_source"]
+					input.docCh <- msg.(util.Doc)
 				}
 
 				logger.Trace.Println(strings.Repeat("=", 37))

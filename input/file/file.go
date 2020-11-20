@@ -2,19 +2,20 @@ package file
 
 import (
 	"bufio"
+	"log"
 	"os"
 
-	"log"
+	"github.com/VertexC/log-formatter/util"
 )
 
 type FileInput struct {
 	fileInput string
 	f         *os.File
 	scanner   *bufio.Scanner
-	docCh     chan map[string]interface{}
+	docCh     chan util.Doc
 }
 
-func NewFileInput(filePath string, docCh chan map[string]interface{}) *FileInput {
+func NewFileInput(filePath string, docCh chan util.Doc) *FileInput {
 
 	f, err := os.OpenFile(filePath, os.O_RDONLY, 0666)
 	if err != nil {
@@ -33,7 +34,7 @@ func (input *FileInput) Run() {
 	defer input.f.Close()
 
 	for input.scanner.Scan() {
-		input.docCh <- map[string]interface{}{"message": input.scanner.Text()}
+		input.docCh <- util.Doc{"message": input.scanner.Text()}
 	}
 
 	if err := input.scanner.Err(); err != nil {

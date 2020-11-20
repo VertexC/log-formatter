@@ -1,10 +1,11 @@
 package pipeline
 
 import (
+	"log"
+
 	"github.com/VertexC/log-formatter/pipeline/filter"
 	"github.com/VertexC/log-formatter/pipeline/parser"
 	"github.com/VertexC/log-formatter/util"
-	"log"
 )
 
 type Label struct {
@@ -13,7 +14,7 @@ type Label struct {
 }
 
 type Formatter interface {
-	Format(map[string]interface{}) (map[string]interface{}, error)
+	Format(util.Doc) (util.Doc, error)
 }
 
 type FormatterConfig struct {
@@ -44,14 +45,14 @@ type PipelineConfig struct {
 
 type Pipeline struct {
 	formatters []Formatter
-	inputCh    chan map[string]interface{}
-	outputCh   chan map[string]interface{}
+	inputCh    chan util.Doc
+	outputCh   chan util.Doc
 	logger     *util.Logger
 	// TODO: move labelling to proper component of log-formatter
 	labels map[string]string
 }
 
-func NewPipeline(config PipelineConfig, inputCh chan map[string]interface{}, outputCh chan map[string]interface{}) *Pipeline {
+func NewPipeline(config PipelineConfig, inputCh chan util.Doc, outputCh chan util.Doc) *Pipeline {
 	fmts := []Formatter{}
 	for _, fmtCfg := range config.FormatterCfgs {
 		fmt := NewFormatter(fmtCfg)

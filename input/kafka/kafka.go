@@ -12,7 +12,7 @@ import (
 
 type Consumer struct {
 	ready  chan bool
-	docCh  chan map[string]interface{}
+	docCh  chan util.Doc
 	schema string
 	logger *util.Logger
 }
@@ -33,7 +33,7 @@ type KafkaInput struct {
 	config   KafkaConfig
 }
 
-func NewKafkaInput(config KafkaConfig, docCh chan map[string]interface{}) *KafkaInput {
+func NewKafkaInput(config KafkaConfig, docCh chan util.Doc) *KafkaInput {
 	logger := util.NewLogger("kafka-consumer")
 
 	sarama.Logger = logger.Trace
@@ -124,8 +124,8 @@ func (consumer *Consumer) Cleanup(sarama.ConsumerGroupSession) error {
 	return nil
 }
 
-func (consumer *Consumer) decode(val []byte) map[string]interface{} {
-	result := map[string]interface{}{}
+func (consumer *Consumer) decode(val []byte) util.Doc {
+	result := util.Doc{}
 	switch consumer.schema {
 	case "json":
 		err := json.Unmarshal(val, &result)

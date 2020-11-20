@@ -5,6 +5,7 @@ import (
 	"github.com/VertexC/log-formatter/output/elasticsearch"
 	"github.com/VertexC/log-formatter/output/file"
 	"github.com/VertexC/log-formatter/output/kafka"
+	"github.com/VertexC/log-formatter/util"
 )
 
 type OutputConfig struct {
@@ -18,7 +19,7 @@ type Output interface {
 	Run()
 }
 
-func NewOutput(config OutputConfig, docCh chan map[string]interface{}) (output Output) {
+func NewOutput(config OutputConfig, docCh chan util.Doc) (output Output) {
 	switch config.Target {
 	case "elasticsearch":
 		output = elasticsearch.NewEsOutput(*config.EsCfg, docCh)
