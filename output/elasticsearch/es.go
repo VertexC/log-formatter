@@ -8,7 +8,6 @@ import (
 	"github.com/elastic/go-elasticsearch/v8"
 	"github.com/elastic/go-elasticsearch/v8/esapi"
 	"math"
-	"regexp"
 	"time"
 )
 
@@ -16,28 +15,6 @@ type EsConfig struct {
 	Host      string `yaml:"host"`
 	Index     string `yaml:"index"`
 	BatchSize int    `yaml:"batchsize"`
-}
-
-var logger = util.NewLogger("!!!!!!!!!!!!!!!")
-
-// TODO: endocde into yaml decode
-func GetIndexParser(s string) func(util.Doc) string {
-	// {{field}}
-	regexpStr := `\{\{(?P<index>.*?)\}\}`
-	r := regexp.MustCompile(regexpStr)
-	matchMap, err := util.SubMatchMapRegex(regexpStr, s)
-	logger.Debug.Print("matchMap: %+v\n", matchMap)
-	if err == nil {
-		if token, exist := matchMap["index"]; exist {
-			return func(doc util.Doc) string {
-				index := doc[token].(string)
-				return r.ReplaceAllString(s, index)
-			}
-		}
-	}
-	return func(doc util.Doc) string {
-		return s
-	}
 }
 
 type EsOutput struct {
@@ -75,7 +52,7 @@ func NewEsOutput(config EsConfig, docCh chan util.Doc) *EsOutput {
 		docCh:       docCh,
 		config:      config,
 		client:      client,
-		indexParser: GetIndexParser(config.Index),
+		indexParser: util.DynamicFromField(config.Index),
 	}
 	return output
 }
@@ -107,7 +84,6 @@ func (output *EsOutput) Run() {
 			if jsonStr, err := json.Marshal(createLine); err != nil {
 				logger.Error.Fatalf("Failed to convert to json: %s\n", err)
 			} else {
-				logger.Debug.Printf(string(jsonStr))
 				bodyBuf.Write(jsonStr)
 				bodyBuf.WriteByte('\n')
 			}

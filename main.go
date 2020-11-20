@@ -2,7 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
 	"flag"
 	"io/ioutil"
 	"log"
@@ -21,53 +20,6 @@ import (
 )
 
 // used for loading included files
-type Fragment struct {
-	content *yaml.Node
-}
-
-func (f *Fragment) UnmarshalYAML(value *yaml.Node) error {
-	var err error
-	// process includes in fragments
-	f.content, err = resolveIncludes(value)
-	return err
-}
-
-type IncludeProcessor struct {
-	target interface{}
-}
-
-func (i *IncludeProcessor) UnmarshalYAML(value *yaml.Node) error {
-	resolved, err := resolveIncludes(value)
-	if err != nil {
-		return err
-	}
-	return resolved.Decode(i.target)
-}
-
-func resolveIncludes(node *yaml.Node) (*yaml.Node, error) {
-	if node.Tag == "!include" {
-		if node.Kind != yaml.ScalarNode {
-			return nil, errors.New("!include on a non-scalar node")
-		}
-		file, err := ioutil.ReadFile(node.Value)
-		if err != nil {
-			return nil, err
-		}
-		var f Fragment
-		err = yaml.Unmarshal(file, &f)
-		return f.content, err
-	}
-	if node.Kind == yaml.SequenceNode || node.Kind == yaml.MappingNode {
-		var err error
-		for i := range node.Content {
-			node.Content[i], err = resolveIncludes(node.Content[i])
-			if err != nil {
-				return nil, err
-			}
-		}
-	}
-	return node, nil
-}
 
 type Config struct {
 	LogDir      string                  `yaml:"log" default:"logs"`
@@ -89,7 +41,7 @@ func loadConfig(configFile string) *Config {
 		log.Fatalln("Failed to open file: ", err)
 	}
 	config := Config{}
-	if err := yaml.Unmarshal(yamlFile, &IncludeProcessor{&config}); err != nil {
+	if err := yaml.Unmarshal(yamlFile, &util.IncludeProcessor{&config}); err != nil {
 		log.Fatalln("Failed to decode yaml: ", err)
 	}
 	return &config
