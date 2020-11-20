@@ -4,18 +4,20 @@ import (
 	"encoding/json"
 	"errors"
 	"flag"
-	"github.com/VertexC/log-formatter/input"
-	"github.com/VertexC/log-formatter/output"
-	"github.com/VertexC/log-formatter/pipeline"
-	"github.com/VertexC/log-formatter/util"
-	"github.com/pkg/profile"
-	"gopkg.in/yaml.v3"
 	"io/ioutil"
 	"log"
 	"os"
 	"os/signal"
 	"path"
 	"syscall"
+
+	"github.com/pkg/profile"
+	"gopkg.in/yaml.v3"
+
+	"github.com/VertexC/log-formatter/input"
+	"github.com/VertexC/log-formatter/output"
+	"github.com/VertexC/log-formatter/pipeline"
+	"github.com/VertexC/log-formatter/util"
 )
 
 // used for loading included files

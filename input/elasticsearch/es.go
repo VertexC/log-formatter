@@ -65,7 +65,7 @@ func NewEsInput(config EsConfig, docCh chan util.Doc) *EsInput {
 	}
 	// Print client and server version numbers.
 	logger.Info.Printf("Client: %s\n", elasticsearch.Version)
-	logger.Info.Printf("Server: %s\n", r["version"].(util.Doc)["number"])
+	logger.Info.Printf("Server: %s\n", r["version"].(map[string]interface{})["number"])
 
 	input := &EsInput{
 		docCh:  docCh,
@@ -78,7 +78,6 @@ func NewEsInput(config EsConfig, docCh chan util.Doc) *EsInput {
 }
 
 func (input *EsInput) Run() {
-
 	logger := input.logger
 	var r util.Doc
 	// Build the request body.
@@ -132,14 +131,14 @@ func (input *EsInput) Run() {
 				logger.Trace.Printf(
 					"[%s] %d hits; took: %dms",
 					res.Status(),
-					int(r["hits"].(util.Doc)["total"].(util.Doc)["value"].(float64)),
+					int(r["hits"].(map[string]interface{})["total"].(map[string]interface{})["value"].(float64)),
 					int(r["took"].(float64)),
 				)
 				// Print the ID and document source for each hit.
-				for i, hit := range r["hits"].(util.Doc)["hits"].([]interface{}) {
-					logger.Trace.Printf("Return Id %d * ID=%s, %s", i, hit.(util.Doc)["_id"], hit.(util.Doc)["_source"])
-					msg := hit.(util.Doc)["_source"]
-					input.docCh <- msg.(util.Doc)
+				for i, hit := range r["hits"].(map[string]interface{})["hits"].([]interface{}) {
+					logger.Trace.Printf("Return Id %d * ID=%s, %s", i, hit.(map[string]interface{})["_id"], hit.(map[string]interface{})["_source"])
+					doc := util.Doc(hit.(map[string]interface{})["_source"].(map[string]interface{}))
+					input.docCh <- doc
 				}
 
 				logger.Trace.Println(strings.Repeat("=", 37))
