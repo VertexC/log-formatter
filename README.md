@@ -1,5 +1,6 @@
 [![Build Status](https://travis-ci.org/VertexC/log-formatter.svg?branch=master)](https://travis-ci.org/VertexC/log-formatter)
 [![Go Report Card](https://goreportcard.com/badge/github.com/VertexC/log-formatter)](https://goreportcard.com/report/github.com/VertexC/log-formatter)
+[![codecov](https://codecov.io/gh/VertexC/log-formatter/branch/master/graph/badge.svg?token=ULNP7LB4AI)](https://codecov.io/gh/VertexC/log-formatter)
 # Log Formatter
 Log Formatter provides configurable pipeline to process log data.
 
