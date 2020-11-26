@@ -12,7 +12,7 @@ type FileOutput struct {
 	f      *os.File
 }
 
-func NewFileOutput(filePath string, docCh chan util.Doc) *FileOutput {
+func NewFileOutput(filePath string) *FileOutput {
 	logger := util.NewLogger("file-output")
 
 	f, err := os.OpenFile(filePath, os.O_CREATE|os.O_WRONLY, 0667)
@@ -21,11 +21,15 @@ func NewFileOutput(filePath string, docCh chan util.Doc) *FileOutput {
 	}
 
 	output := &FileOutput{
-		docCh: docCh,
+		docCh: make(chan util.Doc, 1000),
 		f:     f,
 	}
 
 	return output
+}
+
+func (output *FileOutput) Append(doc util.Doc) {
+	output.docCh <- doc
 }
 
 func (output *FileOutput) Run() {

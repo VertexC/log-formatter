@@ -25,7 +25,7 @@ type EsOutput struct {
 	indexParser func(util.Doc) string
 }
 
-func NewEsOutput(config EsConfig, docCh chan util.Doc) *EsOutput {
+func NewEsOutput(config EsConfig) *EsOutput {
 	logger := util.NewLogger("elastic-output")
 	// Declare an Elasticsearch configuration
 	cfg := elasticsearch.Config{
@@ -49,12 +49,16 @@ func NewEsOutput(config EsConfig, docCh chan util.Doc) *EsOutput {
 	}
 	output := &EsOutput{
 		logger:      logger,
-		docCh:       docCh,
+		docCh:       make(chan util.Doc, 1000),
 		config:      config,
 		client:      client,
 		indexParser: util.DynamicFromField(config.Index),
 	}
 	return output
+}
+
+func (output *EsOutput) Append(doc util.Doc) {
+	output.docCh <- doc
 }
 
 func (output *EsOutput) Run() {

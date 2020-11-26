@@ -23,7 +23,7 @@ import (
 
 type Config struct {
 	LogDir      string                  `yaml:"log" default:"logs"`
-	OutCfg      output.OutputConfig     `yaml:"output"`
+	OutCfgs     []output.OutputConfig   `yaml:"outputs"`
 	InCfg       input.InputConfig       `yaml:"input"`
 	PipelineCfg pipeline.PipelineConfig `yaml:"pipeline"`
 }
@@ -104,10 +104,10 @@ func main() {
 
 	pipeline := pipeline.NewPipeline(config.PipelineCfg, inputCh, outputCh)
 	input := input.NewInput(config.InCfg, inputCh)
-	output := output.NewOutput(config.OutCfg, outputCh)
+	outputRunner := output.New(config.OutCfgs, outputCh)
 	go pipeline.Run()
 	go input.Run()
-	go output.Run()
+	go outputRunner.Start()
 
 	<-doneCh
 }

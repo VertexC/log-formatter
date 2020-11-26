@@ -10,10 +10,14 @@ type Console struct {
 	docCh chan util.Doc
 }
 
-func NewConsoleOutput(docCh chan util.Doc) *Console {
+func NewConsoleOutput() *Console {
 	return &Console{
-		docCh: docCh,
+		docCh: make(chan util.Doc, 1000),
 	}
+}
+
+func (console *Console) Append(doc util.Doc) {
+	console.docCh <- doc
 }
 
 func (console *Console) Run() {

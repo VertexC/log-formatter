@@ -18,7 +18,7 @@ type KafkaOutput struct {
 	config   KafkaConfig
 }
 
-func NewKafkaOutput(config KafkaConfig, docCh chan util.Doc) *KafkaOutput {
+func NewKafkaOutput(config KafkaConfig) *KafkaOutput {
 	logger := util.NewLogger("[Output-Kafka]")
 	sarama.Logger = logger.Trace
 
@@ -40,11 +40,15 @@ func NewKafkaOutput(config KafkaConfig, docCh chan util.Doc) *KafkaOutput {
 
 	output := &KafkaOutput{
 		logger:   logger,
-		docCh:    docCh,
+		docCh:    make(chan util.Doc, 1000),
 		producer: producer,
 		config:   config,
 	}
 	return output
+}
+
+func (output *KafkaOutput) Append(doc util.Doc) {
+	output.docCh <- doc
 }
 
 func (output *KafkaOutput) Run() {

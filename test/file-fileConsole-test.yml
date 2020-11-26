@@ -1,0 +1,5 @@
+log: "logs"
+input: !include "config.modules/input-file-test.yml"
+outputs: 
+  - !include "config.modules/output-file-test.yml"
+  - !include "config.modules/output-console.yml"
