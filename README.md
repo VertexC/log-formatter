@@ -2,7 +2,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/VertexC/log-formatter)](https://goreportcard.com/report/github.com/VertexC/log-formatter)
 [![codecov](https://codecov.io/gh/VertexC/log-formatter/branch/master/graph/badge.svg?token=ULNP7LB4AI)](https://codecov.io/gh/VertexC/log-formatter)
 # Log Formatter
-Log Formatter provides configurable pipeline to process log data.
+Log Formatter provides configurable pipeline to process log data, it process the data from inputs (Kafka/Elastisearch/file) with formatters and send results to outputs (Kafka/Elastisearch/file/console...).
 
 ## Usage
 ### build from source
@@ -24,15 +24,14 @@ Usage of ./main:
 ### docker
 Docker images are available on [docker hub](https://hub.docker.com/r/vertexc/log-formatter/tags), with branch name as tag (`master` is tagged as `latest`).
 
-
 The docker image is built without any entries point. The executable binary is `/app/log-formatter`.
 ```bash
 docker run -i -a stdin -a stdout -a stderr -v <local-config.yml>:/app/config.yml vertexc/log-formatter /app/log-formatter -h
 ```
-## Documentation
+## Code Documentation
 https://godoc.org/github.com/VertexC/log-formatter
 
-## Config File
+## Configuration
 The config can be modulized with `!include`
 ```yaml
 log: "logs"
@@ -40,4 +39,4 @@ output: !include modules/output.yml
 input: !include modules/input.yml
 formatter: !include modules/formatter.yml
 ```
-More templates are available under [modules](./config.modules/), please checkout.
+More templates about inputs, outputs and formatters are available under [modules](./config.modules/), please checkout.

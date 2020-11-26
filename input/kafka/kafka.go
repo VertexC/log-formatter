@@ -18,12 +18,12 @@ type Consumer struct {
 }
 
 type KafkaConfig struct {
-	Broker    string `yaml:"broker"`
-	BatchSize int    `default:"1000" yaml:"batch_size"`
-	GroupName string `default:"log-formatter" yaml:"group_name"`
-	Topic     string `yaml:"topic"`
-	Version   string `default:"2.4.0" yaml:"version"`
-	Schema    string `yaml:"schema"`
+	Brokers   []string `yaml:"brokers"`
+	BatchSize int      `default:"1000" yaml:"batch_size"`
+	GroupName string   `default:"log-formatter" yaml:"group_name"`
+	Topic     string   `yaml:"topic"`
+	Version   string   `default:"2.4.0" yaml:"version"`
+	Schema    string   `yaml:"schema"`
 }
 
 type KafkaInput struct {
@@ -58,8 +58,7 @@ func NewKafkaInput(config KafkaConfig, docCh chan util.Doc) *KafkaInput {
 		logger: logger,
 	}
 
-	brokers := []string{config.Broker}
-	client, err := sarama.NewConsumerGroup(brokers, config.GroupName, saramaCfg)
+	client, err := sarama.NewConsumerGroup(config.Brokers, config.GroupName, saramaCfg)
 	if err != nil {
 		log.Panicf("Error creating consumer group client: %v", err)
 	}
