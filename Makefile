@@ -38,9 +38,8 @@ kafka-test: build
 	sleep 10s
 	timeout --preserve-status 20s ./main -c test/file-kafka-test.yml
 	timeout --preserve-status 20s ./main -c test/kafka-file-test.yml
-	@sh test/check-same-line.sh test/input-test.txt output-test.txt
+	@sh test/check-same-line.sh test/input-test.txt output-test.txt ; rm output-test.txt
 	$(MAKE) services-down
-	rm output-test.txt
 
 .PHONY: docker-push
 docker-push:
