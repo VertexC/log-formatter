@@ -3,6 +3,7 @@ package kafka
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/Shopify/sarama"
 	"log"
 	"sync"
@@ -24,13 +25,21 @@ type KafkaConfig struct {
 	Topic     string   `yaml:"topic"`
 	Version   string   `default:"2.4.0" yaml:"version"`
 	Schema    string   `yaml:"schema"`
+	// Worker is the number of workers in sarama
+	Worker int `yaml:"worker"`
+}
+
+type worker struct {
+	consumer *Consumer
+	client   sarama.ConsumerGroup
+	topic    string
+	logger   *util.Logger
 }
 
 type KafkaInput struct {
-	logger   *util.Logger
-	consumer *Consumer
-	client   sarama.ConsumerGroup
-	config   KafkaConfig
+	logger  *util.Logger
+	workers []*worker
+	config  KafkaConfig
 }
 
 func NewKafkaInput(config KafkaConfig, docCh chan util.Doc) *KafkaInput {
@@ -41,39 +50,56 @@ func NewKafkaInput(config KafkaConfig, docCh chan util.Doc) *KafkaInput {
 	if err != nil {
 		log.Fatalf("Error parsing Kafka version: %v", err)
 	}
-	saramaCfg := sarama.NewConfig()
-	// Adapt sarama version to Kafka version
-	saramaCfg.Version = version
-
-	// TODO: what this oldest parameter do?
-	oldest := true
-	if oldest {
-		saramaCfg.Consumer.Offsets.Initial = sarama.OffsetOldest
-	}
-
-	consumer := &Consumer{
-		ready:  make(chan bool),
-		docCh:  docCh,
-		schema: config.Schema,
-		logger: logger,
-	}
-
-	client, err := sarama.NewConsumerGroup(config.Brokers, config.GroupName, saramaCfg)
-	if err != nil {
-		log.Panicf("Error creating consumer group client: %v", err)
-	}
 
 	input := &KafkaInput{
-		logger:   logger,
-		config:   config,
-		consumer: consumer,
-		client:   client,
+		logger:  logger,
+		config:  config,
+		workers: []*worker{},
 	}
+	if config.Worker == 0 {
+		config.Worker = 1
+	}
+	for i := 0; i < config.Worker; i++ {
+		consumer := &Consumer{
+			ready:  make(chan bool),
+			docCh:  docCh,
+			schema: config.Schema,
+			logger: logger,
+		}
+		// create new saram config for different clientid
+		saramaCfg := sarama.NewConfig()
+		saramaCfg.ClientID = fmt.Sprintf("saram%d", i)
+		// Adapt sarama version to Kafka version
+		saramaCfg.Version = version
 
+		// TODO: what this oldest parameter do?
+		oldest := true
+		if oldest {
+			saramaCfg.Consumer.Offsets.Initial = sarama.OffsetOldest
+		}
+
+		client, err := sarama.NewConsumerGroup(config.Brokers, config.GroupName, saramaCfg)
+		if err != nil {
+			log.Panicf("Error creating consumer group client: %v", err)
+		}
+		input.workers = append(input.workers,
+			&worker{
+				consumer: consumer,
+				client:   client,
+				topic:    config.Topic,
+				logger:   input.logger,
+			})
+	}
 	return input
 }
 
 func (input *KafkaInput) Run() {
+	for _, worker := range input.workers {
+		go worker.Run()
+	}
+}
+
+func (w *worker) Run() {
 	ctx, cancel := context.WithCancel(context.Background())
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
@@ -83,32 +109,31 @@ func (input *KafkaInput) Run() {
 			// `Consume` should be called inside an infinite loop, when a
 			// server-side rebalance happens, the consumer session will need to be
 			// recreated to get the new claims
-			// TODO: add multi topic in config
-			topics := []string{input.config.Topic}
-			if err := input.client.Consume(ctx, topics, input.consumer); err != nil {
+			topics := []string{w.topic}
+			if err := w.client.Consume(ctx, topics, w.consumer); err != nil {
 				log.Panicf("Error from consumer: %v", err)
 			}
 			// check if context was cancelled, signaling that the consumer should stop
 			if ctx.Err() != nil {
 				return
 			}
-			input.consumer.ready = make(chan bool)
+			w.consumer.ready = make(chan bool)
 		}
 	}()
 
-	<-input.consumer.ready // Await till the consumer has been set up
-	input.logger.Info.Println("Sarama consumer up and running!...")
+	<-w.consumer.ready // Await till the consumer has been set up
+	w.logger.Info.Println("Sarama consumer up and running!...")
 
 	select {
 	case <-ctx.Done():
-		input.logger.Info.Println("terminating: context cancelled")
+		w.logger.Info.Println("terminating: context cancelled")
 	}
 	cancel()
 	wg.Wait()
-	if err := input.client.Close(); err != nil {
-		input.logger.Warning.Printf("Error closing client: %v", err)
+	if err := w.client.Close(); err != nil {
+		w.logger.Warning.Printf("Error closing client: %v", err)
 	}
-	input.logger.Info.Println("Sarama consumer end!")
+	w.logger.Info.Println("Sarama consumer end!")
 }
 
 // Setup is run at the beginning of a new session, before ConsumeClaim
