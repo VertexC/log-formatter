@@ -41,51 +41,75 @@ func NewFormatter(config FormatterConfig) Formatter {
 type PipelineConfig struct {
 	FormatterCfgs []FormatterConfig `yaml:"formatters"`
 	Labels        []Label           `yaml:"labels"`
+	Worker        int               `yaml:"worker"`
+}
+
+type worker struct {
+	inputCh  chan util.Doc
+	outputCh chan util.Doc
+	logger   *util.Logger
+	// TODO: move labelling to proper component of log-formatter
+	labels     map[string]string
+	formatters []Formatter
 }
 
 type Pipeline struct {
-	formatters []Formatter
-	inputCh    chan util.Doc
-	outputCh   chan util.Doc
-	logger     *util.Logger
-	// TODO: move labelling to proper component of log-formatter
-	labels map[string]string
+	inputCh  chan util.Doc
+	outputCh chan util.Doc
+	logger   *util.Logger
+	workers  []*worker
 }
 
 func NewPipeline(config PipelineConfig, inputCh chan util.Doc, outputCh chan util.Doc) *Pipeline {
-	fmts := []Formatter{}
-	for _, fmtCfg := range config.FormatterCfgs {
-		fmt := NewFormatter(fmtCfg)
-		fmts = append(fmts, fmt)
-	}
+	logger := util.NewLogger("pipeline")
 	pipeline := new(Pipeline)
-	pipeline.formatters = fmts
-	pipeline.labels = map[string]string{}
-	for _, label := range config.Labels {
-		pipeline.labels[label.Key] = label.Val
+	pipeline.logger = logger
+	if config.Worker == 0 {
+		config.Worker = 1
 	}
-	pipeline.inputCh = inputCh
-	pipeline.outputCh = outputCh
-	pipeline.logger = util.NewLogger("pipeline")
+	for i := 0; i < config.Worker; i++ {
+		fmts := []Formatter{}
+		for _, fmtCfg := range config.FormatterCfgs {
+			fmt := NewFormatter(fmtCfg)
+			fmts = append(fmts, fmt)
+		}
+		labels := map[string]string{}
+		for _, label := range config.Labels {
+			labels[label.Key] = label.Val
+		}
+		w := &worker{
+			inputCh:    inputCh,
+			outputCh:   outputCh,
+			logger:     logger,
+			formatters: fmts,
+		}
+		pipeline.workers = append(pipeline.workers, w)
+	}
 	return pipeline
 }
 
 func (pipeline *Pipeline) Run() {
-	for doc := range pipeline.inputCh {
+	for _, worker := range pipeline.workers {
+		go worker.Run()
+	}
+}
+
+func (w *worker) Run() {
+	for doc := range w.inputCh {
 		discard := false
-		for _, fmt := range pipeline.formatters {
+		for _, fmt := range w.formatters {
 			var err error
 			doc, err = fmt.Format(doc)
 			if err != nil {
 				discard = true
-				pipeline.logger.Warning.Printf("Discard doc:%s **with err** %s", doc, err)
+				w.logger.Warning.Printf("Discard doc:%s **with err** %s", doc, err)
 			}
 		}
 		if !discard {
-			for k, v := range pipeline.labels {
+			for k, v := range w.labels {
 				doc[k] = v
 			}
-			pipeline.outputCh <- doc
+			w.outputCh <- doc
 		}
 	}
 }
