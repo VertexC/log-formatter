@@ -5,3 +5,4 @@ kafka:
   topic: "test"
   group_name: "formatter-test"
   version: "2.6.0"
+  worker: 2

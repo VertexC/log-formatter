@@ -1,0 +1,5 @@
+input: !include "config.modules/input-file-test.yml"
+output:
+  target: console
+pipeline:
+  worker: 2
