@@ -4,11 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/Shopify/sarama"
 	"log"
 	"sync"
 
+	"github.com/VertexC/log-formatter/config"
+	"github.com/VertexC/log-formatter/input"
 	"github.com/VertexC/log-formatter/util"
+
+	"github.com/Shopify/sarama"
+	"gopkg.in/yaml.v3"
 )
 
 type Consumer struct {
@@ -19,11 +23,11 @@ type Consumer struct {
 }
 
 type KafkaConfig struct {
+	Base      config.ConfigBase
 	Brokers   []string `yaml:"brokers"`
-	BatchSize int      `default:"1000" yaml:"batch_size"`
-	GroupName string   `default:"log-formatter" yaml:"group_name"`
+	GroupName string   `yaml:"group_name"`
 	Topic     string   `yaml:"topic"`
-	Version   string   `default:"2.4.0" yaml:"version"`
+	Version   string   `yaml:"version"`
 	Schema    string   `yaml:"schema"`
 	// Worker is the number of workers in sarama
 	Worker int `yaml:"worker"`
@@ -42,8 +46,36 @@ type KafkaInput struct {
 	config  KafkaConfig
 }
 
-func NewKafkaInput(config KafkaConfig, docCh chan util.Doc) *KafkaInput {
-	logger := util.NewLogger("kafka-consumer")
+func init() {
+	input.Register("kafka", NewKafkaInput)
+}
+
+func NewKafkaInput(content interface{}, docCh chan util.Doc) (input.Input, error) {
+	configMapStr, ok := content.(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("Failed to get mapStr from config")
+	}
+
+	data, err := yaml.Marshal(&configMapStr)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to process given content as yaml: %s", err)
+	}
+
+	// TODO: can we avoid such manual mandantory fields settings by using struct's tags?
+	config := KafkaConfig{
+		Base: config.ConfigBase{
+			Content:          configMapStr,
+			MandantoryFields: []string{"brokers", "topic"},
+		},
+		GroupName: "log-formatter",
+		Version:   "2.4.0",
+		Schema:    "",
+		Worker:    1,
+	}
+
+	yaml.Unmarshal(data, &config)
+
+	logger := util.NewLogger("INPUT_KAFKA")
 
 	sarama.Logger = logger.Trace
 	version, err := sarama.ParseKafkaVersion(config.Version)
@@ -78,9 +110,10 @@ func NewKafkaInput(config KafkaConfig, docCh chan util.Doc) *KafkaInput {
 			saramaCfg.Consumer.Offsets.Initial = sarama.OffsetOldest
 		}
 
+		// FIXME:
 		client, err := sarama.NewConsumerGroup(config.Brokers, config.GroupName, saramaCfg)
 		if err != nil {
-			log.Panicf("Error creating consumer group client: %v", err)
+			return nil, fmt.Errorf("Error creating consumer group client: %v", err)
 		}
 		input.workers = append(input.workers,
 			&worker{
@@ -90,7 +123,7 @@ func NewKafkaInput(config KafkaConfig, docCh chan util.Doc) *KafkaInput {
 				logger:   input.logger,
 			})
 	}
-	return input
+	return input, nil
 }
 
 func (input *KafkaInput) Run() {

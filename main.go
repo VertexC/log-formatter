@@ -3,60 +3,53 @@ package main
 import (
 	"encoding/json"
 	"flag"
-	"io/ioutil"
-	"log"
+	"fmt"
 	"os"
 	"os/signal"
 	"path"
 	"syscall"
 
 	"github.com/pkg/profile"
-	"gopkg.in/yaml.v3"
 
 	"github.com/VertexC/log-formatter/input"
 	"github.com/VertexC/log-formatter/output"
 	"github.com/VertexC/log-formatter/pipeline"
+
+	"github.com/VertexC/log-formatter/config"
+	_ "github.com/VertexC/log-formatter/include"
 	"github.com/VertexC/log-formatter/util"
 )
 
-// used for loading included files
+// Options contains the top level options of log-formatter
+var options = &struct {
+	configFile  string
+	verboseFlag bool
+	cpuProfile  bool
+	memProfile  bool
+}{}
 
 type Config struct {
-	LogDir      string                  `yaml:"log" default:"logs"`
-	OutCfg      output.OutputConfig     `yaml:"output"`
-	InCfg       input.InputConfig       `yaml:"input"`
-	PipelineCfg pipeline.PipelineConfig `yaml:"pipeline"`
+	Base   *config.ConfigBase
+	LogDir string `yaml:"log" default:"logs"`
+	// OutCfg      map[string]interface{}  `yaml:"output"`
+	// InCfg       map[string]interface{} `yaml:"input"`
+	// PipelineCfg map[string]interface{} `yaml:"pipeline"`
 }
 
-var configFilePath = flag.String("c", "config.yml", "config file path")
-var verboseFlag = flag.Bool("v", false, "add TRACE/WARNING logging if enabled")
-var cpuProfile = flag.Bool("cpuprof", false, "enable cpu profile")
-var memProfile = flag.Bool("memprof", false, "enable mem profile")
-
-var logger = new(util.Logger)
-
-func loadConfig(configFile string) *Config {
-	yamlFile, err := ioutil.ReadFile(configFile)
-	if err != nil {
-		log.Fatalln("Failed to open file: ", err)
-	}
-	config := Config{}
-	if err := yaml.Unmarshal(yamlFile, &util.IncludeProcessor{&config}); err != nil {
-		log.Fatalln("Failed to decode yaml: ", err)
-	}
-	return &config
+func init() {
+	flag.StringVar(&options.configFile, "c", "config.yml", "config file path")
+	flag.BoolVar(&options.verboseFlag, "v", false, "add TRACE/WARNING logging if enabled")
+	flag.BoolVar(&options.cpuProfile, "cpuprof", false, "enable cpu profile")
+	flag.BoolVar(&options.memProfile, "memprof", false, "enable mem profile")
 }
 
-func Init() (config *Config, verbose bool) {
-	configFile := *configFilePath
-	verbose = *verboseFlag
-
-	config = loadConfig(configFile)
-
-	// create log Dir
-	_ = os.Mkdir(config.LogDir, os.ModePerm)
-
-	return
+// Validate: validate and set with default field in content
+func (c *Config) Validate() error {
+	// check mandantory field
+	if err := c.Base.Validate(); err != nil {
+		return err
+	}
+	return nil
 }
 
 func main() {
@@ -64,11 +57,11 @@ func main() {
 
 	// prof
 	profiles := []func(*profile.Profile){}
-	if *cpuProfile {
+	if options.cpuProfile {
 		profiles = append(profiles, profile.CPUProfile)
 	}
 
-	if *memProfile {
+	if options.memProfile {
 		profiles = append(profiles, profile.MemProfile)
 	}
 
@@ -77,17 +70,42 @@ func main() {
 		defer profile.Start(profiles...).Stop()
 	}
 
-	config, verbose := Init()
-	util.Verbose = verbose
-	util.LogFile = path.Join(config.LogDir, "runtime.log")
-	logger = util.NewLogger("Main")
+	// load config content
+	content, err := config.LoadMapStrFromYamlFile(options.configFile)
+	if err != nil {
+		panic(fmt.Sprintf("Failed to load config From File: %s", err))
+	}
 
-	configPretty, _ := json.MarshalIndent(*config, "", "\t")
+	// default config
+	config := &Config{
+		Base: &config.ConfigBase{
+			Content:          content,
+			MandantoryFields: []string{"input", "output", "pipeline"},
+		},
+		LogDir: "logs",
+	}
+
+	if err := config.Validate(); err != nil {
+		panic(fmt.Sprintf("Failed to parse config: %s", err))
+	}
+
+	if _, err := os.Stat(config.LogDir); err != nil {
+		if os.IsNotExist(err) {
+			if err := os.Mkdir(config.LogDir, os.ModePerm); err != nil {
+				panic(fmt.Sprintf("Failed to create dir <%s>: %s", config.LogDir, err))
+			}
+		} else {
+			panic(fmt.Sprintf("Failed to get stats of dir <%s>: %s", config.LogDir, err))
+		}
+	}
+
+	util.Verbose = options.verboseFlag
+	util.LogFile = path.Join(config.LogDir, "runtime.log")
+
+	logger := util.NewLogger("Main")
+	configPretty, _ := json.MarshalIndent(config, "", "  ")
 	logger.Info.Printf("Get config\n %s\n", configPretty)
 
-	// TODO: make it configurable
-	inputCh := make(chan util.Doc, 1000)
-	outputCh := make(chan util.Doc, 1000)
 	doneCh := make(chan struct{})
 
 	sigterm := make(chan os.Signal, 1)
@@ -102,9 +120,28 @@ func main() {
 		}
 	}()
 
-	pipeline := pipeline.NewPipeline(config.PipelineCfg, inputCh, outputCh)
-	input := input.NewInput(config.InCfg, inputCh)
-	output := output.NewOutput(config.OutCfg, outputCh)
+	// // TODO: make it configurable
+	inputCh := make(chan util.Doc, 1000)
+	outputCh := make(chan util.Doc, 1000)
+	// construct components
+	pipeline, err := pipeline.NewPipeline(config.Base.Content["pipeline"], inputCh, outputCh)
+	if err != nil {
+		panic(fmt.Sprintf("Failed to create pipeline: %s", err))
+	}
+
+	output, err := output.NewOutput(config.Base.Content["output"], outputCh)
+	if err != nil {
+		panic(fmt.Sprintf("Failed to create Output: %s", err))
+	}
+
+	input, err := input.NewInput(config.Base.Content["input"], inputCh)
+	if err != nil {
+		panic(fmt.Sprintf("Failed to create Input: %s", err))
+	}
+
+	// logger.Debug.Println("output: %+v", output)
+	// logger.Debug.Println("input: %+v", input)
+	// logger.Debug.Println("pipeline: %+v", pipeline)
 	go pipeline.Run()
 	go input.Run()
 	go output.Run()

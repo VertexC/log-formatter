@@ -2,6 +2,9 @@ package parser
 
 import (
 	"fmt"
+
+	"github.com/VertexC/log-formatter/config"
+	"github.com/VertexC/log-formatter/pipeline"
 	"github.com/VertexC/log-formatter/util"
 )
 
@@ -11,6 +14,7 @@ type Label struct {
 }
 
 type ParserConfig struct {
+	Base config.ConfigBase
 	// ComponentsRegex is regexpr with components as groupname. To discard a component, add _ behind groupname like (?P<foo_>)
 	ComponentsRegex string `yaml:"components_regex"`
 	// Labels further extract label form certain component based on regexpr
@@ -26,12 +30,31 @@ type Parser struct {
 	logger *util.Logger
 }
 
+func init() {
+	pipeline.Register("parser", NewParser)
+}
+
 // TODO: finish regexpr compile jobs while new parser
-func NewParser(parserCfg ParserConfig) (parser *Parser) {
-	parser = new(Parser)
-	parser.config = parserCfg
-	parser.logger = util.NewLogger("pipeline-parser")
-	return
+func NewParser(content interface{}) (pipeline.Formatter, error) {
+	contentMapStr, ok := content.(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("Failed to convert config to MapStr")
+	}
+	config := ParserConfig{
+		Base: config.ConfigBase{
+			Content:          contentMapStr,
+			MandantoryFields: []string{"components_regex", "target_field"},
+		},
+		ErrTolerant: false,
+	}
+	if err := util.YamlConvert(contentMapStr, &config); err != nil {
+		return nil, err
+	}
+	parser := &Parser{
+		config: config,
+		logger: util.NewLogger("pipeline-parser"),
+	}
+	return parser, nil
 }
 
 func (parser *Parser) Format(doc util.Doc) (util.Doc, error) {

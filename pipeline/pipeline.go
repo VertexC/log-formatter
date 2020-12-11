@@ -1,10 +1,9 @@
 package pipeline
 
 import (
-	"log"
+	"fmt"
 
-	"github.com/VertexC/log-formatter/pipeline/filter"
-	"github.com/VertexC/log-formatter/pipeline/parser"
+	"github.com/VertexC/log-formatter/config"
 	"github.com/VertexC/log-formatter/util"
 )
 
@@ -17,31 +16,41 @@ type Formatter interface {
 	Format(util.Doc) (util.Doc, error)
 }
 
-type FormatterConfig struct {
-	Type      string               `yaml:"type"`
-	ParserCfg *parser.ParserConfig `yaml:"parser"`
-	FilterCfg *filter.FilterConfig `yaml:"filter"`
-}
+type Factory = func(interface{}) (Formatter, error)
 
-func NewFormatter(config FormatterConfig) Formatter {
-	switch config.Type {
-	case "parser":
-		return parser.NewParser(*config.ParserCfg)
-	case "filter":
-		formatter, err := filter.NewFilter(*config.FilterCfg)
-		if err != nil {
-			log.Fatalf("Error when create filter: %s:", err)
-		}
-		return formatter
-	default:
-		panic("Invalid Formatter Type:" + config.Type)
+var registry = make(map[string]Factory)
+var logger = util.NewLogger("PIPLINE")
+
+func Register(name string, factory Factory) error {
+	logger.Info.Printf("Registering formatter <%s>\n", name)
+	if name == "" {
+		return fmt.Errorf("Error registering formatter: name cannot be empty")
 	}
+	if factory == nil {
+		return fmt.Errorf("Error registering formatter '%v': factory cannot be empty", name)
+	}
+	if _, exists := registry[name]; exists {
+		return fmt.Errorf("Error registering formatter '%v': already registered", name)
+	}
+
+	registry[name] = factory
+	logger.Info.Printf("Successfully registered formatter <%s>\n", name)
+
+	return nil
 }
 
-type PipelineConfig struct {
-	FormatterCfgs []FormatterConfig `yaml:"formatters"`
-	Labels        []Label           `yaml:"labels"`
-	Worker        int               `yaml:"worker"`
+func NewFormatter(content interface{}) (Formatter, error) {
+	contentMapStr, ok := content.(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("Cannot convert given config to mapStr")
+	}
+	for name, val := range contentMapStr {
+		if factory, ok := registry[name]; ok {
+			output, err := factory(val)
+			return output, err
+		}
+	}
+	return nil, fmt.Errorf("Failed to creat any output target")
 }
 
 type worker struct {
@@ -53,30 +62,54 @@ type worker struct {
 	formatters []Formatter
 }
 
-type Pipeline struct {
-	inputCh  chan util.Doc
-	outputCh chan util.Doc
-	logger   *util.Logger
-	workers  []*worker
+type PipelineConfig struct {
+	Base   config.ConfigBase
+	Worker int `yaml:"worker"`
 }
 
-func NewPipeline(config PipelineConfig, inputCh chan util.Doc, outputCh chan util.Doc) *Pipeline {
+type Pipeline struct {
+	logger  *util.Logger
+	workers []*worker
+}
+
+func NewPipeline(content interface{}, inputCh chan util.Doc, outputCh chan util.Doc) (*Pipeline, error) {
 	logger := util.NewLogger("pipeline")
+	contentMapStr, ok := content.(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("Failed to convert config to MapStr")
+	}
+
+	config := PipelineConfig{
+		Base: config.ConfigBase{
+			Content:          contentMapStr,
+			MandantoryFields: []string{"formatters"},
+		},
+		Worker: 1,
+	}
+
+	if err := config.Base.Validate(); err != nil {
+		return nil, err
+	}
+
+	util.YamlConvert(contentMapStr, &config)
+
+	formatterCfgs, ok := contentMapStr["formatters"].([]interface{})
+	if !ok {
+		return nil, fmt.Errorf("Failed to conver config to []MapStr")
+	}
+
 	pipeline := new(Pipeline)
 	pipeline.logger = logger
-	if config.Worker == 0 {
-		config.Worker = 1
-	}
 	for i := 0; i < config.Worker; i++ {
 		fmts := []Formatter{}
-		for _, fmtCfg := range config.FormatterCfgs {
-			fmt := NewFormatter(fmtCfg)
+		for _, c := range formatterCfgs {
+			fmt, err := NewFormatter(c)
+			if err != nil {
+				return nil, err
+			}
 			fmts = append(fmts, fmt)
 		}
-		labels := map[string]string{}
-		for _, label := range config.Labels {
-			labels[label.Key] = label.Val
-		}
+
 		w := &worker{
 			inputCh:    inputCh,
 			outputCh:   outputCh,
@@ -85,7 +118,7 @@ func NewPipeline(config PipelineConfig, inputCh chan util.Doc, outputCh chan uti
 		}
 		pipeline.workers = append(pipeline.workers, w)
 	}
-	return pipeline
+	return pipeline, nil
 }
 
 func (pipeline *Pipeline) Run() {

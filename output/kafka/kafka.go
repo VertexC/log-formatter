@@ -2,11 +2,15 @@ package kafka
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/Shopify/sarama"
+	"github.com/VertexC/log-formatter/config"
+	"github.com/VertexC/log-formatter/output"
 	"github.com/VertexC/log-formatter/util"
 )
 
 type KafkaConfig struct {
+	Base   config.ConfigBase
 	Broker string `yaml:"broker"`
 	Topic  string `yaml:"topic"`
 }
@@ -15,11 +19,48 @@ type KafkaOutput struct {
 	logger   *util.Logger
 	docCh    chan util.Doc
 	producer sarama.SyncProducer
-	config   KafkaConfig
+	config   *KafkaConfig
+	saramCfg *sarama.Config
 }
 
-func NewKafkaOutput(config KafkaConfig, docCh chan util.Doc) *KafkaOutput {
-	logger := util.NewLogger("[Output-Kafka]")
+func init() {
+	err := output.Register("kafka", NewKafkaOutput)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func NewKafkaOutput(content interface{}, docCh chan util.Doc) (output.Output, error) {
+	configMapStr, ok := content.(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("Failed to get mapStr for Kafka Output")
+	}
+	// default config
+	config := &KafkaConfig{
+		Base: config.ConfigBase{
+			Content:          configMapStr,
+			MandantoryFields: []string{"broker", "topic"},
+		},
+	}
+	if err := config.Base.Validate(); err != nil {
+		return nil, err
+	}
+
+	// FIXME: is there a try to assign with type information
+	// like: func tryToAssign(a interface{}, b interface{}) error
+	if val, ok := configMapStr["broker"].(string); ok {
+		config.Broker = val
+	} else {
+		fmt.Errorf("Failed to convert <broker> field to <string>")
+	}
+	if val, ok := configMapStr["topic"].(string); ok {
+		config.Broker = val
+	} else {
+		fmt.Errorf("Failed to convert <topic> field to <string>")
+	}
+
+	// set log
+	logger := util.NewLogger("Output_Kafka")
 	sarama.Logger = logger.Trace
 
 	// producer config
@@ -31,24 +72,25 @@ func NewKafkaOutput(config KafkaConfig, docCh chan util.Doc) *KafkaOutput {
 	// async producer
 	//prd, err := sarama.NewAsyncProducer([]string{kafkaConn}, config)
 
-	// sync producer
-	producer, err := sarama.NewSyncProducer([]string{config.Broker}, saramCfg)
-
-	if err != nil {
-		logger.Error.Fatalln("Error producer: ", err.Error())
-	}
-
 	output := &KafkaOutput{
 		logger:   logger,
 		docCh:    docCh,
-		producer: producer,
 		config:   config,
+		saramCfg: saramCfg,
 	}
-	return output
+	return output, nil
 }
 
 func (output *KafkaOutput) Run() {
 	logger := output.logger
+
+	// FIXME: if broker is unavailble this will report error and quite
+	// sync producer
+	producer, err := sarama.NewSyncProducer([]string{output.config.Broker}, output.saramCfg)
+	if err != nil {
+		logger.Error.Fatalln("Error producer: ", err.Error())
+	}
+
 	for doc := range output.docCh {
 		data, err := json.Marshal(doc)
 		if err != nil {
@@ -60,7 +102,7 @@ func (output *KafkaOutput) Run() {
 			Topic: output.config.Topic,
 			Value: sarama.StringEncoder(message),
 		}
-		p, o, err := output.producer.SendMessage(msg)
+		p, o, err := producer.SendMessage(msg)
 		if err != nil {
 			logger.Warning.Println("Error publish: ", err.Error())
 		}

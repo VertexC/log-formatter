@@ -2,9 +2,11 @@ package util
 
 import (
 	"errors"
-	"gopkg.in/yaml.v3"
+	"fmt"
 	"io/ioutil"
 	"regexp"
+
+	"gopkg.in/yaml.v3"
 )
 
 // DynamicFromField return a `function` with based on given str
@@ -75,4 +77,19 @@ func resolveIncludes(node *yaml.Node) (*yaml.Node, error) {
 		}
 	}
 	return node, nil
+}
+
+// YamlConvert try to convert contentMapStr to target with yaml (un)marshal
+func YamlConvert(contentMapStr map[string]interface{}, target interface{}) error {
+	data, err := yaml.Marshal(contentMapStr)
+	if err != nil {
+		return fmt.Errorf("Failed to convert with yaml: %s", err)
+	}
+
+	err = yaml.Unmarshal(data, target)
+	if err != nil {
+		return fmt.Errorf("Failed to convert to yaml: %s", err)
+	}
+
+	return nil
 }

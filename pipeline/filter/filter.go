@@ -1,9 +1,11 @@
 package filter
 
 import (
-	"errors"
-	"github.com/VertexC/log-formatter/util"
+	"fmt"
 	"regexp"
+
+	"github.com/VertexC/log-formatter/pipeline"
+	"github.com/VertexC/log-formatter/util"
 )
 
 type FilterConfig struct {
@@ -20,11 +22,24 @@ type Filter struct {
 	logger       *util.Logger
 }
 
-func NewFilter(config FilterConfig) (*Filter, error) {
+func init() {
+	pipeline.Register("filter", NewFilter)
+}
+
+func NewFilter(content interface{}) (pipeline.Formatter, error) {
+	contentMapStr, ok := content.(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("Failed to convert config to MapStr")
+	}
+	config := FilterConfig{}
+	if err := util.YamlConvert(contentMapStr, &config); err != nil {
+		return nil, err
+	}
+
 	filter := new(Filter)
 	filter.logger = util.NewLogger("filter")
 	if len(config.IncludeFields) > 0 && len(config.ExcludeFields) > 0 {
-		return nil, errors.New("Cannot use include and exlude at same time")
+		return nil, fmt.Errorf("Cannot use include and exlude at same time")
 	}
 	for _, regStr := range config.IncludeFields {
 		r := regexp.MustCompile(regStr)

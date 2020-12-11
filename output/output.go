@@ -1,36 +1,50 @@
 package output
 
 import (
-	"github.com/VertexC/log-formatter/output/console"
-	"github.com/VertexC/log-formatter/output/elasticsearch"
-	"github.com/VertexC/log-formatter/output/file"
-	"github.com/VertexC/log-formatter/output/kafka"
+	"fmt"
 	"github.com/VertexC/log-formatter/util"
 )
-
-type OutputConfig struct {
-	Target   string                  `yaml:"target"`
-	EsCfg    *elasticsearch.EsConfig `yaml:"elasticsearch,omitempty"`
-	KafkaCfg *kafka.KafkaConfig      `yaml:"kafka,omitempty"`
-	File     string                  `yaml:"file"`
-}
 
 type Output interface {
 	Run()
 }
 
-func NewOutput(config OutputConfig, docCh chan util.Doc) (output Output) {
-	switch config.Target {
-	case "elasticsearch":
-		output = elasticsearch.NewEsOutput(*config.EsCfg, docCh)
-	case "kafka":
-		output = kafka.NewKafkaOutput(*config.KafkaCfg, docCh)
-	case "console":
-		output = console.NewConsoleOutput(docCh)
-	case "file":
-		output = file.NewFileOutput(config.File, docCh)
-	default:
-		panic("Invalid output target:" + config.Target)
+type Factory = func(interface{}, chan util.Doc) (Output, error)
+
+var registry = make(map[string]Factory)
+var logger = util.NewLogger("OUTPUT")
+
+func Register(name string, factory Factory) error {
+	logger.Info.Printf("Registering output <%s>\n", name)
+	if name == "" {
+		return fmt.Errorf("Error registering input: name cannot be empty")
 	}
-	return
+	if factory == nil {
+		return fmt.Errorf("Error registering output '%v': factory cannot be empty", name)
+	}
+	if _, exists := registry[name]; exists {
+		return fmt.Errorf("Error registering output '%v': already registered", name)
+	}
+
+	registry[name] = factory
+	logger.Info.Printf("Successfully registered output <%s>\n", name)
+
+	return nil
+}
+
+func NewOutput(content interface{}, docCh chan util.Doc) (Output, error) {
+	contentMapStr, ok := content.(map[string]interface{})
+	if !ok {
+		return nil, fmt.Errorf("Cannot convert given config to mapStr")
+	}
+	if len(contentMapStr) > 1 {
+		return nil, fmt.Errorf("Cannot have multiple output targets.")
+	}
+	for target, val := range contentMapStr {
+		if factory, ok := registry[target]; ok {
+			output, err := factory(val, docCh)
+			return output, err
+		}
+	}
+	return nil, fmt.Errorf("Failed to creat any output target")
 }

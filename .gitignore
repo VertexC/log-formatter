@@ -5,3 +5,4 @@ local.modules
 *coverage.txt
 .vscode
 backup
+tmp
