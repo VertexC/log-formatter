@@ -40,9 +40,7 @@ func Register(name string, factory Factory) error {
 }
 
 func NewFormatter(content interface{}) (Formatter, error) {
-	logger.Debug.Printf("%+v\n", content)
 	contentMapStr, ok := content.(map[string]interface{})
-	logger.Debug.Printf("%+v\n", contentMapStr)
 	if !ok {
 		return nil, fmt.Errorf("Cannot convert given formatter config to mapStr")
 	}
@@ -100,13 +98,11 @@ func NewPipeline(content interface{}, inputCh chan map[string]interface{}, outpu
 		return nil, fmt.Errorf("Failed to convert config to []MapStr")
 	}
 
-	logger.Debug.Printf("%+v\n", formatterCfgs)
 	pipeline := new(Pipeline)
 	pipeline.logger = logger
 	for i := 0; i < config.Worker; i++ {
 		fmts := []Formatter{}
-		for x, c := range formatterCfgs {
-			logger.Debug.Printf("%+v %+v\n", x, c)
+		for _, c := range formatterCfgs {
 			fmt, err := NewFormatter(c)
 			if err != nil {
 				return nil, err

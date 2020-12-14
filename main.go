@@ -139,9 +139,6 @@ func main() {
 		panic(fmt.Sprintf("Failed to create Input: %s", err))
 	}
 
-	// logger.Debug.Println("output: %+v", output)
-	// logger.Debug.Println("input: %+v", input)
-	// logger.Debug.Println("pipeline: %+v", pipeline)
 	go pipeline.Run()
 	go input.Run()
 	go output.Run()
