@@ -17,7 +17,7 @@ type KafkaConfig struct {
 
 type KafkaOutput struct {
 	logger   *util.Logger
-	docCh    chan util.Doc
+	docCh    chan map[string]interface{}
 	producer sarama.SyncProducer
 	config   *KafkaConfig
 	saramCfg *sarama.Config
@@ -30,7 +30,7 @@ func init() {
 	}
 }
 
-func NewKafkaOutput(content interface{}, docCh chan util.Doc) (output.Output, error) {
+func NewKafkaOutput(content interface{}, docCh chan map[string]interface{}) (output.Output, error) {
 	configMapStr, ok := content.(map[string]interface{})
 	if !ok {
 		return nil, fmt.Errorf("Failed to get mapStr for Kafka Output")

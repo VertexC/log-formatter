@@ -2,6 +2,7 @@ package output
 
 import (
 	"fmt"
+
 	"github.com/VertexC/log-formatter/util"
 )
 
@@ -9,7 +10,7 @@ type Output interface {
 	Run()
 }
 
-type Factory = func(interface{}, chan util.Doc) (Output, error)
+type Factory = func(interface{}, chan map[string]interface{}) (Output, error)
 
 var registry = make(map[string]Factory)
 var logger = util.NewLogger("OUTPUT")
@@ -32,7 +33,7 @@ func Register(name string, factory Factory) error {
 	return nil
 }
 
-func NewOutput(content interface{}, docCh chan util.Doc) (Output, error) {
+func NewOutput(content interface{}, docCh chan map[string]interface{}) (Output, error) {
 	contentMapStr, ok := content.(map[string]interface{})
 	if !ok {
 		return nil, fmt.Errorf("Cannot convert given config to mapStr")

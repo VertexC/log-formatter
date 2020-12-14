@@ -17,7 +17,7 @@ import (
 
 type Consumer struct {
 	ready  chan bool
-	docCh  chan util.Doc
+	docCh  chan map[string]interface{}
 	schema string
 	logger *util.Logger
 }
@@ -50,7 +50,7 @@ func init() {
 	input.Register("kafka", NewKafkaInput)
 }
 
-func NewKafkaInput(content interface{}, docCh chan util.Doc) (input.Input, error) {
+func NewKafkaInput(content interface{}, docCh chan map[string]interface{}) (input.Input, error) {
 	configMapStr, ok := content.(map[string]interface{})
 	if !ok {
 		return nil, fmt.Errorf("Failed to get mapStr from config")
@@ -181,8 +181,8 @@ func (consumer *Consumer) Cleanup(sarama.ConsumerGroupSession) error {
 	return nil
 }
 
-func (consumer *Consumer) decode(val []byte) util.Doc {
-	result := util.Doc{}
+func (consumer *Consumer) decode(val []byte) map[string]interface{} {
+	result := map[string]interface{}{}
 	switch consumer.schema {
 	case "json":
 		err := json.Unmarshal(val, &result)

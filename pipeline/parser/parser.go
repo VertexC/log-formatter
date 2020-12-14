@@ -57,7 +57,7 @@ func NewParser(content interface{}) (pipeline.Formatter, error) {
 	return parser, nil
 }
 
-func (parser *Parser) Format(doc util.Doc) (util.Doc, error) {
+func (parser *Parser) Format(doc map[string]interface{}) (map[string]interface{}, error) {
 	target, exist := doc[parser.config.TargetField]
 	if !exist {
 		if parser.config.ErrTolerant {

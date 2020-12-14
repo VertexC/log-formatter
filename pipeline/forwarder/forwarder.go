@@ -2,7 +2,6 @@ package forward
 
 import (
 	"github.com/VertexC/log-formatter/pipeline"
-	"github.com/VertexC/log-formatter/util"
 )
 
 func init() {
@@ -16,6 +15,6 @@ func NewForwarder(content interface{}) (pipeline.Formatter, error) {
 	return f, nil
 }
 
-func (f *Forwarder) Format(doc util.Doc) (util.Doc, error) {
+func (f *Forwarder) Format(doc map[string]interface{}) (map[string]interface{}, error) {
 	return doc, nil
 }

@@ -10,7 +10,7 @@ type Input interface {
 	Run()
 }
 
-type Factory = func(interface{}, chan util.Doc) (Input, error)
+type Factory = func(interface{}, chan map[string]interface{}) (Input, error)
 
 var registry = make(map[string]Factory)
 var logger = util.NewLogger("INPUT")
@@ -33,7 +33,7 @@ func Register(name string, factory Factory) error {
 	return nil
 }
 
-func NewInput(content interface{}, docCh chan util.Doc) (Input, error) {
+func NewInput(content interface{}, docCh chan map[string]interface{}) (Input, error) {
 	contentMapStr, ok := content.(map[string]interface{})
 	if !ok {
 		return nil, fmt.Errorf("Cannot convert given config to mapStr")

@@ -13,7 +13,7 @@ type Label struct {
 }
 
 type Formatter interface {
-	Format(util.Doc) (util.Doc, error)
+	Format(map[string]interface{}) (map[string]interface{}, error)
 }
 
 type Factory = func(interface{}) (Formatter, error)
@@ -40,9 +40,11 @@ func Register(name string, factory Factory) error {
 }
 
 func NewFormatter(content interface{}) (Formatter, error) {
+	logger.Debug.Printf("%+v\n", content)
 	contentMapStr, ok := content.(map[string]interface{})
+	logger.Debug.Printf("%+v\n", contentMapStr)
 	if !ok {
-		return nil, fmt.Errorf("Cannot convert given config to mapStr")
+		return nil, fmt.Errorf("Cannot convert given formatter config to mapStr")
 	}
 	for name, val := range contentMapStr {
 		if factory, ok := registry[name]; ok {
@@ -54,8 +56,8 @@ func NewFormatter(content interface{}) (Formatter, error) {
 }
 
 type worker struct {
-	inputCh  chan util.Doc
-	outputCh chan util.Doc
+	inputCh  chan map[string]interface{}
+	outputCh chan map[string]interface{}
 	logger   *util.Logger
 	// TODO: move labelling to proper component of log-formatter
 	labels     map[string]string
@@ -72,11 +74,11 @@ type Pipeline struct {
 	workers []*worker
 }
 
-func NewPipeline(content interface{}, inputCh chan util.Doc, outputCh chan util.Doc) (*Pipeline, error) {
+func NewPipeline(content interface{}, inputCh chan map[string]interface{}, outputCh chan map[string]interface{}) (*Pipeline, error) {
 	logger := util.NewLogger("pipeline")
 	contentMapStr, ok := content.(map[string]interface{})
 	if !ok {
-		return nil, fmt.Errorf("Failed to convert config to MapStr")
+		return nil, fmt.Errorf("Failed to convert pipeline config to MapStr")
 	}
 
 	config := PipelineConfig{
@@ -95,14 +97,16 @@ func NewPipeline(content interface{}, inputCh chan util.Doc, outputCh chan util.
 
 	formatterCfgs, ok := contentMapStr["formatters"].([]interface{})
 	if !ok {
-		return nil, fmt.Errorf("Failed to conver config to []MapStr")
+		return nil, fmt.Errorf("Failed to convert config to []MapStr")
 	}
 
+	logger.Debug.Printf("%+v\n", formatterCfgs)
 	pipeline := new(Pipeline)
 	pipeline.logger = logger
 	for i := 0; i < config.Worker; i++ {
 		fmts := []Formatter{}
-		for _, c := range formatterCfgs {
+		for x, c := range formatterCfgs {
+			logger.Debug.Printf("%+v %+v\n", x, c)
 			fmt, err := NewFormatter(c)
 			if err != nil {
 				return nil, err

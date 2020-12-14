@@ -121,8 +121,8 @@ func main() {
 	}()
 
 	// // TODO: make it configurable
-	inputCh := make(chan util.Doc, 1000)
-	outputCh := make(chan util.Doc, 1000)
+	inputCh := make(chan map[string]interface{}, 1000)
+	outputCh := make(chan map[string]interface{}, 1000)
 	// construct components
 	pipeline, err := pipeline.NewPipeline(config.Base.Content["pipeline"], inputCh, outputCh)
 	if err != nil {
