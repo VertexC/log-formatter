@@ -2,6 +2,7 @@ package console
 
 import (
 	"fmt"
+
 	"github.com/VertexC/log-formatter/output"
 )
 
@@ -9,19 +10,15 @@ func init() {
 	output.Register("console", NewConsole)
 }
 
-type Console struct {
-	docCh chan map[string]interface{}
-}
+type Console struct{}
 
-func NewConsole(content interface{}, docCh chan map[string]interface{}) (output.Output, error) {
-	console := &Console{
-		docCh: docCh,
-	}
+func NewConsole(content interface{}) (output.Output, error) {
+	console := &Console{}
 	return console, nil
 }
 
-func (console *Console) Run() {
-	for doc := range console.docCh {
-		fmt.Printf("%+v\n", doc)
-	}
+func (console *Console) Run() {}
+
+func (console *Console) Send(doc map[string]interface{}) {
+	fmt.Printf("%+v\n", doc)
 }

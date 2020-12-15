@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/VertexC/log-formatter/config"
+	"github.com/VertexC/log-formatter/connector"
 	"github.com/VertexC/log-formatter/util"
 )
 
@@ -54,9 +55,8 @@ func NewFormatter(content interface{}) (Formatter, error) {
 }
 
 type worker struct {
-	inputCh  chan map[string]interface{}
-	outputCh chan map[string]interface{}
-	logger   *util.Logger
+	conn   *connector.Connector
+	logger *util.Logger
 	// TODO: move labelling to proper component of log-formatter
 	labels     map[string]string
 	formatters []Formatter
@@ -67,16 +67,25 @@ type PipelineConfig struct {
 	Worker int `yaml:"worker"`
 }
 
+type PipelineAgent struct {
+	conn     *connector.Connector
+	pipeline *Pipeline
+}
+
 type Pipeline struct {
 	logger  *util.Logger
 	workers []*worker
 }
 
-func NewPipeline(content interface{}, inputCh chan map[string]interface{}, outputCh chan map[string]interface{}) (*Pipeline, error) {
+func (agent *PipelineAgent) SetConnector(conn *connector.Connector) {
+	agent.conn = conn
+}
+
+func (agent *PipelineAgent) ChangeConfig(content interface{}) error {
 	logger := util.NewLogger("pipeline")
 	contentMapStr, ok := content.(map[string]interface{})
 	if !ok {
-		return nil, fmt.Errorf("Failed to convert pipeline config to MapStr")
+		return fmt.Errorf("Failed to convert pipeline config to MapStr")
 	}
 
 	config := PipelineConfig{
@@ -88,16 +97,15 @@ func NewPipeline(content interface{}, inputCh chan map[string]interface{}, outpu
 	}
 
 	if err := config.Base.Validate(); err != nil {
-		return nil, err
+		return err
 	}
 
 	util.YamlConvert(contentMapStr, &config)
 
 	formatterCfgs, ok := contentMapStr["formatters"].([]interface{})
 	if !ok {
-		return nil, fmt.Errorf("Failed to convert config to []MapStr")
+		return fmt.Errorf("Failed to convert config to []MapStr")
 	}
-
 	pipeline := new(Pipeline)
 	pipeline.logger = logger
 	for i := 0; i < config.Worker; i++ {
@@ -105,20 +113,24 @@ func NewPipeline(content interface{}, inputCh chan map[string]interface{}, outpu
 		for _, c := range formatterCfgs {
 			fmt, err := NewFormatter(c)
 			if err != nil {
-				return nil, err
+				return err
 			}
 			fmts = append(fmts, fmt)
 		}
 
 		w := &worker{
-			inputCh:    inputCh,
-			outputCh:   outputCh,
+			conn:       agent.conn,
 			logger:     logger,
 			formatters: fmts,
 		}
 		pipeline.workers = append(pipeline.workers, w)
 	}
-	return pipeline, nil
+	agent.pipeline = pipeline
+	return nil
+}
+
+func (agent *PipelineAgent) Run() {
+	agent.pipeline.Run()
 }
 
 func (pipeline *Pipeline) Run() {
@@ -128,7 +140,8 @@ func (pipeline *Pipeline) Run() {
 }
 
 func (w *worker) Run() {
-	for doc := range w.inputCh {
+	for {
+		doc := w.conn.InGate.Get()
 		discard := false
 		for _, fmt := range w.formatters {
 			var err error
@@ -142,7 +155,7 @@ func (w *worker) Run() {
 			for k, v := range w.labels {
 				doc[k] = v
 			}
-			w.outputCh <- doc
+			w.conn.OutGate.Put(doc)
 		}
 	}
 }

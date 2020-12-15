@@ -2,15 +2,22 @@ package input
 
 import (
 	"fmt"
+
+	"github.com/VertexC/log-formatter/connector"
 	"github.com/VertexC/log-formatter/util"
 )
 
 type Input interface {
-	// TODO: wrap inputCh and outputCh into contextChannl
+	Emit() map[string]interface{}
 	Run()
 }
 
-type Factory = func(interface{}, chan map[string]interface{}) (Input, error)
+type InputAgent struct {
+	conn  *connector.Connector
+	input Input
+}
+
+type Factory = func(interface{}) (Input, error)
 
 var registry = make(map[string]Factory)
 var logger = util.NewLogger("INPUT")
@@ -33,19 +40,36 @@ func Register(name string, factory Factory) error {
 	return nil
 }
 
-func NewInput(content interface{}, docCh chan map[string]interface{}) (Input, error) {
+func (agent *InputAgent) SetConnector(conn *connector.Connector) {
+	agent.conn = conn
+}
+
+func (agent *InputAgent) ChangeConfig(content interface{}) error {
+	// TODO: clean up resource of previous agent
 	contentMapStr, ok := content.(map[string]interface{})
 	if !ok {
-		return nil, fmt.Errorf("Cannot convert given config to mapStr")
+		return fmt.Errorf("Cannot convert given config to mapStr")
 	}
 	if len(contentMapStr) > 1 {
-		return nil, fmt.Errorf("Cannot have multiple input targets.")
+		return fmt.Errorf("Cannot have multiple input targets.")
 	}
 	for target, val := range contentMapStr {
 		if factory, ok := registry[target]; ok {
-			input, err := factory(val, docCh)
-			return input, err
+			input, err := factory(val)
+			if err == nil {
+				agent.input = input
+				return nil
+			}
 		}
 	}
-	return nil, fmt.Errorf("Failed to creat any input target")
+	return fmt.Errorf("Failed to creat any input target")
+}
+
+func (agent *InputAgent) Run() {
+	agent.input.Run()
+	go func() {
+		for {
+			agent.conn.InGate.Put(agent.input.Emit())
+		}
+	}()
 }

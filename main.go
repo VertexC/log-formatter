@@ -11,6 +11,7 @@ import (
 
 	"github.com/pkg/profile"
 
+	"github.com/VertexC/log-formatter/connector"
 	"github.com/VertexC/log-formatter/input"
 	"github.com/VertexC/log-formatter/output"
 	"github.com/VertexC/log-formatter/pipeline"
@@ -120,28 +121,36 @@ func main() {
 		}
 	}()
 
-	// // TODO: make it configurable
-	inputCh := make(chan map[string]interface{}, 1000)
-	outputCh := make(chan map[string]interface{}, 1000)
-	// construct components
-	pipeline, err := pipeline.NewPipeline(config.Base.Content["pipeline"], inputCh, outputCh)
+	conn, err := connector.NewConnector()
 	if err != nil {
-		panic(fmt.Sprintf("Failed to create pipeline: %s", err))
+		panic(fmt.Sprintf("Failed to create connector: %s", err))
 	}
 
-	output, err := output.NewOutput(config.Base.Content["output"], outputCh)
-	if err != nil {
-		panic(fmt.Sprintf("Failed to create Output: %s", err))
-	}
+	// create agents
+	input := new(input.InputAgent)
+	input.SetConnector(conn)
 
-	input, err := input.NewInput(config.Base.Content["input"], inputCh)
-	if err != nil {
+	output := new(output.OutputAgent)
+	output.SetConnector(conn)
+
+	pipeline := new(pipeline.PipelineAgent)
+	pipeline.SetConnector(conn)
+
+	if err := input.ChangeConfig(config.Base.Content["input"]); err != nil {
 		panic(fmt.Sprintf("Failed to create Input: %s", err))
 	}
 
-	go pipeline.Run()
-	go input.Run()
-	go output.Run()
+	if err := output.ChangeConfig(config.Base.Content["output"]); err != nil {
+		panic(fmt.Sprintf("Failed to create Output: %s", err))
+	}
+
+	if err := pipeline.ChangeConfig(config.Base.Content["pipeline"]); err != nil {
+		panic(fmt.Sprintf("Failed to create Pipeline: %s", err))
+	}
+
+	pipeline.Run()
+	input.Run()
+	output.Run()
 
 	<-doneCh
 }

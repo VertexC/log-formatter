@@ -30,7 +30,7 @@ func init() {
 	}
 }
 
-func NewKafkaOutput(content interface{}, docCh chan map[string]interface{}) (output.Output, error) {
+func NewKafkaOutput(content interface{}) (output.Output, error) {
 	configMapStr, ok := content.(map[string]interface{})
 	if !ok {
 		return nil, fmt.Errorf("Failed to get mapStr for Kafka Output")
@@ -74,7 +74,7 @@ func NewKafkaOutput(content interface{}, docCh chan map[string]interface{}) (out
 
 	output := &KafkaOutput{
 		logger:   logger,
-		docCh:    docCh,
+		docCh:    make(chan map[string]interface{}, 1000),
 		config:   config,
 		saramCfg: saramCfg,
 	}
@@ -108,4 +108,8 @@ func (output *KafkaOutput) Run() {
 		}
 		logger.Trace.Printf("Partition: %d Offset: %d", p, o)
 	}
+}
+
+func (output *KafkaOutput) Send(doc map[string]interface{}) {
+	output.docCh <- doc
 }

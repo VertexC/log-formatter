@@ -3,14 +3,22 @@ package output
 import (
 	"fmt"
 
+	"github.com/VertexC/log-formatter/connector"
 	"github.com/VertexC/log-formatter/util"
 )
 
 type Output interface {
 	Run()
+	// Send single doc to output
+	Send(doc map[string]interface{})
 }
 
-type Factory = func(interface{}, chan map[string]interface{}) (Output, error)
+type OutputAgent struct {
+	conn   *connector.Connector
+	output Output
+}
+
+type Factory = func(interface{}) (Output, error)
 
 var registry = make(map[string]Factory)
 var logger = util.NewLogger("OUTPUT")
@@ -33,19 +41,35 @@ func Register(name string, factory Factory) error {
 	return nil
 }
 
-func NewOutput(content interface{}, docCh chan map[string]interface{}) (Output, error) {
+func (agent *OutputAgent) SetConnector(conn *connector.Connector) {
+	agent.conn = conn
+}
+
+func (agent *OutputAgent) ChangeConfig(content interface{}) error {
 	contentMapStr, ok := content.(map[string]interface{})
 	if !ok {
-		return nil, fmt.Errorf("Cannot convert given config to mapStr")
+		return fmt.Errorf("Cannot convert given config to mapStr")
 	}
 	if len(contentMapStr) > 1 {
-		return nil, fmt.Errorf("Cannot have multiple output targets.")
+		return fmt.Errorf("Cannot have multiple output targets.")
 	}
 	for target, val := range contentMapStr {
 		if factory, ok := registry[target]; ok {
-			output, err := factory(val, docCh)
-			return output, err
+			output, err := factory(val)
+			if err == nil {
+				agent.output = output
+				return nil
+			}
 		}
 	}
-	return nil, fmt.Errorf("Failed to creat any output target")
+	return fmt.Errorf("Failed to creat any output target")
+}
+
+func (agent *OutputAgent) Run() {
+	agent.output.Run()
+	go func() {
+		for {
+			agent.output.Send(agent.conn.OutGate.Get())
+		}
+	}()
 }

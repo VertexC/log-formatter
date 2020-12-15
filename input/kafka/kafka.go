@@ -38,19 +38,21 @@ type worker struct {
 	client   sarama.ConsumerGroup
 	topic    string
 	logger   *util.Logger
+	docCh    chan map[string]interface{}
 }
 
 type KafkaInput struct {
 	logger  *util.Logger
 	workers []*worker
 	config  KafkaConfig
+	docCh   chan map[string]interface{}
 }
 
 func init() {
 	input.Register("kafka", NewKafkaInput)
 }
 
-func NewKafkaInput(content interface{}, docCh chan map[string]interface{}) (input.Input, error) {
+func NewKafkaInput(content interface{}) (input.Input, error) {
 	configMapStr, ok := content.(map[string]interface{})
 	if !ok {
 		return nil, fmt.Errorf("Failed to get mapStr from config")
@@ -87,14 +89,16 @@ func NewKafkaInput(content interface{}, docCh chan map[string]interface{}) (inpu
 		logger:  logger,
 		config:  config,
 		workers: []*worker{},
+		docCh:   make(chan map[string]interface{}, 1000),
 	}
 	if config.Worker == 0 {
 		config.Worker = 1
 	}
+
 	for i := 0; i < config.Worker; i++ {
 		consumer := &Consumer{
 			ready:  make(chan bool),
-			docCh:  docCh,
+			docCh:  input.docCh,
 			schema: config.Schema,
 			logger: logger,
 		}
@@ -130,6 +134,10 @@ func (input *KafkaInput) Run() {
 	for _, worker := range input.workers {
 		go worker.Run()
 	}
+}
+
+func (input *KafkaInput) Emit() map[string]interface{} {
+	return <-input.docCh
 }
 
 func (w *worker) Run() {

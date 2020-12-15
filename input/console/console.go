@@ -14,22 +14,21 @@ func init() {
 }
 
 type Console struct {
-	docCh chan map[string]interface{}
+	reader *bufio.Reader
 }
 
-func NewConsole(content interface{}, docCh chan map[string]interface{}) (input.Input, error) {
+func NewConsole(content interface{}) (input.Input, error) {
 	console := &Console{
-		docCh: docCh,
+		reader: bufio.NewReader(os.Stdin),
 	}
 	return console, nil
 }
 
-func (console *Console) Run() {
-	reader := bufio.NewReader(os.Stdin)
-	for {
-		time.Sleep(time.Duration(1) * time.Second)
-		fmt.Printf(">")
-		text, _ := reader.ReadString('\n')
-		console.docCh <- map[string]interface{}{"message": text}
-	}
+func (console *Console) Run() {}
+
+func (console *Console) Emit() map[string]interface{} {
+	time.Sleep(time.Duration(1) * time.Second)
+	fmt.Printf(">")
+	text, _ := console.reader.ReadString('\n')
+	return map[string]interface{}{"message": text}
 }
