@@ -6,7 +6,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/VertexC/log-formatter/input"
+	"github.com/VertexC/log-formatter/agent/input"
 )
 
 func init() {

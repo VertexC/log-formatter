@@ -3,7 +3,7 @@ package console
 import (
 	"fmt"
 
-	"github.com/VertexC/log-formatter/output"
+	"github.com/VertexC/log-formatter/agent/output"
 )
 
 func init() {

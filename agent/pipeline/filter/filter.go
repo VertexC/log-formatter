@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"regexp"
 
-	"github.com/VertexC/log-formatter/pipeline"
+	"github.com/VertexC/log-formatter/agent/pipeline"
 	"github.com/VertexC/log-formatter/util"
 )
 

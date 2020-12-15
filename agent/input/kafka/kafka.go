@@ -7,8 +7,8 @@ import (
 	"log"
 	"sync"
 
+	"github.com/VertexC/log-formatter/agent/input"
 	"github.com/VertexC/log-formatter/config"
-	"github.com/VertexC/log-formatter/input"
 	"github.com/VertexC/log-formatter/util"
 
 	"github.com/Shopify/sarama"

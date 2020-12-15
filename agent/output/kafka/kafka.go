@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/Shopify/sarama"
+	"github.com/VertexC/log-formatter/agent/output"
 	"github.com/VertexC/log-formatter/config"
-	"github.com/VertexC/log-formatter/output"
 	"github.com/VertexC/log-formatter/util"
 )
 

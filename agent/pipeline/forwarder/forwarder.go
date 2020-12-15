@@ -1,7 +1,7 @@
 package forward
 
 import (
-	"github.com/VertexC/log-formatter/pipeline"
+	"github.com/VertexC/log-formatter/agent/pipeline"
 )
 
 func init() {
