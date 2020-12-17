@@ -39,6 +39,24 @@ func init() {
 	flag.BoolVar(&options.memProfile, "memprof", false, "enable mem profile")
 }
 
+func exitController() struct{} {
+	doneCh := make(chan struct{})
+
+	sigterm := make(chan os.Signal, 1)
+	signal.Notify(sigterm, syscall.SIGINT, syscall.SIGTERM)
+
+	// go routine to catch signal interrupt
+	go func() {
+		select {
+		case <-sigterm:
+			fmt.Println("terminating: via signal")
+			doneCh <- struct{}{}
+		}
+	}()
+
+	return <-doneCh
+}
+
 func main() {
 	logger := util.NewLogger("Main")
 
@@ -82,6 +100,7 @@ func main() {
 	logger.Info.Printf("Get config\n %s\n", configPretty)
 
 	manager, err := agent.NewAgentsManager()
+	manager.StartRpcService()
 	if err != nil {
 		panic(err)
 	}
@@ -90,19 +109,5 @@ func main() {
 		panic(err)
 	}
 
-	doneCh := make(chan struct{})
-
-	sigterm := make(chan os.Signal, 1)
-	signal.Notify(sigterm, syscall.SIGINT, syscall.SIGTERM)
-
-	// go routine to catch signal interrupt
-	go func() {
-		select {
-		case <-sigterm:
-			logger.Info.Println("terminating: via signal")
-			doneCh <- struct{}{}
-		}
-	}()
-
-	<-doneCh
+	exitController()
 }

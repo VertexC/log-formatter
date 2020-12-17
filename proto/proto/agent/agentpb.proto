@@ -1,0 +1,59 @@
+syntax = "proto3";
+
+option go_package = "github.com/VertexC/log-formatter/proto/pkg/agent";
+
+package agentpb;
+
+message HeartBeat {
+    Status status = 1;
+    // id is the ID of log-formatter
+    uint64 id = 2;
+}
+
+message HeartBeatRequest {
+    ResponseHeader header = 1;
+}
+
+message ChangeConfigRequest {
+    RequestHeader header = 1;
+    bytes config = 2;
+}
+
+message ChangeConfigResponse {
+    ResponseHeader respsone = 1;
+}
+
+message RequestHeader {
+    // id is the ID of log-formatter
+    uint64 id = 1;
+    // server's ip and port
+    string server = 2;
+}
+
+message ResponseHeader {
+    // id is the ID of log-formatter
+    uint64 id = 1;
+    Error error = 2;
+}
+
+message Error {
+    ErrorType type = 1;
+    string message = 2;
+}
+
+enum ErrorType {
+    OK = 0;
+    UNKOWN = 1;
+    FAILED = 2;
+}
+
+enum Status {
+    Stop = 0;
+    Running = 1;
+}
+
+service LogFormatterAgent {
+    rpc ChangeConfig(ChangeConfigRequest) returns (ChangeConfigResponse) {}
+    rpc GetHeartBeat(HeartBeatRequest) returns (HeartBeat) {}
+}
+

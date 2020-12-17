@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package controllerpb;
+
+option go_package = "github.com/VertexC/log-formatter/proto/controller";
+
+import "agent/agentpb.proto";
+
+message ControllerRequestDone {}
+
+service Controller {
+    rpc UpdateAgentStatusRequest(agentpb.HeartBeat) returns (ControllerRequestDone) {}
+}
