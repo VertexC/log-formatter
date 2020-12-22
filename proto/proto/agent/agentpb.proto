@@ -14,12 +14,12 @@ message HeartBeatRequest {
     ResponseHeader header = 1;
 }
 
-message ChangeConfigRequest {
+message UpdateConfigRequest {
     RequestHeader header = 1;
     bytes config = 2;
 }
 
-message ChangeConfigResponse {
+message UpdateConfigResponse {
     ResponseHeader respsone = 1;
 }
 
@@ -53,7 +53,7 @@ enum Status {
 }
 
 service LogFormatterAgent {
-    rpc ChangeConfig(ChangeConfigRequest) returns (ChangeConfigResponse) {}
+    rpc UpdateConfig(UpdateConfigRequest) returns (UpdateConfigResponse) {}
     rpc GetHeartBeat(HeartBeatRequest) returns (HeartBeat) {}
 }
 

@@ -80,14 +80,14 @@ func main() {
 	logger.Info.Printf("Get config\n %s\n", configPretty)
 
 	manager, err := agent.NewAgentsManager()
-	manager.StartRpcService()
 	if err != nil {
 		panic(err)
 	}
 
-	if err := manager.ChangeConfigAndRun(content); err != nil {
+	if err := manager.ChangeConfig(content); err != nil {
 		panic(err)
 	}
+	manager.Run()
 
-	ExitController()
+	util.ExitControl()
 }

@@ -17,7 +17,7 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type LogFormatterAgentClient interface {
-	ChangeConfig(ctx context.Context, in *ChangeConfigRequest, opts ...grpc.CallOption) (*ChangeConfigResponse, error)
+	UpdateConfig(ctx context.Context, in *UpdateConfigRequest, opts ...grpc.CallOption) (*UpdateConfigResponse, error)
 	GetHeartBeat(ctx context.Context, in *HeartBeatRequest, opts ...grpc.CallOption) (*HeartBeat, error)
 }
 
@@ -29,9 +29,9 @@ func NewLogFormatterAgentClient(cc grpc.ClientConnInterface) LogFormatterAgentCl
 	return &logFormatterAgentClient{cc}
 }
 
-func (c *logFormatterAgentClient) ChangeConfig(ctx context.Context, in *ChangeConfigRequest, opts ...grpc.CallOption) (*ChangeConfigResponse, error) {
-	out := new(ChangeConfigResponse)
-	err := c.cc.Invoke(ctx, "/agentpb.LogFormatterAgent/ChangeConfig", in, out, opts...)
+func (c *logFormatterAgentClient) UpdateConfig(ctx context.Context, in *UpdateConfigRequest, opts ...grpc.CallOption) (*UpdateConfigResponse, error) {
+	out := new(UpdateConfigResponse)
+	err := c.cc.Invoke(ctx, "/agentpb.LogFormatterAgent/UpdateConfig", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -51,7 +51,7 @@ func (c *logFormatterAgentClient) GetHeartBeat(ctx context.Context, in *HeartBea
 // All implementations must embed UnimplementedLogFormatterAgentServer
 // for forward compatibility
 type LogFormatterAgentServer interface {
-	ChangeConfig(context.Context, *ChangeConfigRequest) (*ChangeConfigResponse, error)
+	UpdateConfig(context.Context, *UpdateConfigRequest) (*UpdateConfigResponse, error)
 	GetHeartBeat(context.Context, *HeartBeatRequest) (*HeartBeat, error)
 	mustEmbedUnimplementedLogFormatterAgentServer()
 }
@@ -60,8 +60,8 @@ type LogFormatterAgentServer interface {
 type UnimplementedLogFormatterAgentServer struct {
 }
 
-func (UnimplementedLogFormatterAgentServer) ChangeConfig(context.Context, *ChangeConfigRequest) (*ChangeConfigResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ChangeConfig not implemented")
+func (UnimplementedLogFormatterAgentServer) UpdateConfig(context.Context, *UpdateConfigRequest) (*UpdateConfigResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateConfig not implemented")
 }
 func (UnimplementedLogFormatterAgentServer) GetHeartBeat(context.Context, *HeartBeatRequest) (*HeartBeat, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetHeartBeat not implemented")
@@ -79,20 +79,20 @@ func RegisterLogFormatterAgentServer(s grpc.ServiceRegistrar, srv LogFormatterAg
 	s.RegisterService(&_LogFormatterAgent_serviceDesc, srv)
 }
 
-func _LogFormatterAgent_ChangeConfig_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ChangeConfigRequest)
+func _LogFormatterAgent_UpdateConfig_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateConfigRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(LogFormatterAgentServer).ChangeConfig(ctx, in)
+		return srv.(LogFormatterAgentServer).UpdateConfig(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/agentpb.LogFormatterAgent/ChangeConfig",
+		FullMethod: "/agentpb.LogFormatterAgent/UpdateConfig",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(LogFormatterAgentServer).ChangeConfig(ctx, req.(*ChangeConfigRequest))
+		return srv.(LogFormatterAgentServer).UpdateConfig(ctx, req.(*UpdateConfigRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -120,8 +120,8 @@ var _LogFormatterAgent_serviceDesc = grpc.ServiceDesc{
 	HandlerType: (*LogFormatterAgentServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "ChangeConfig",
-			Handler:    _LogFormatterAgent_ChangeConfig_Handler,
+			MethodName: "UpdateConfig",
+			Handler:    _LogFormatterAgent_UpdateConfig_Handler,
 		},
 		{
 			MethodName: "GetHeartBeat",
