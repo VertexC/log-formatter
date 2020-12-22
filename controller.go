@@ -27,5 +27,5 @@ func main() {
 	if err != nil {
 		log.Fatalf("could not greet: %v", err)
 	}
-	log.Printf("Greeting: %v", r)
+	log.Printf("Got Heartbeat: %+v\n", *r)
 }

@@ -5,9 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"os/signal"
 	"path"
-	"syscall"
 
 	"github.com/pkg/profile"
 
@@ -37,24 +35,6 @@ func init() {
 	flag.BoolVar(&options.verboseFlag, "v", false, "add TRACE/WARNING logging if enabled")
 	flag.BoolVar(&options.cpuProfile, "cpuprof", false, "enable cpu profile")
 	flag.BoolVar(&options.memProfile, "memprof", false, "enable mem profile")
-}
-
-func exitController() struct{} {
-	doneCh := make(chan struct{})
-
-	sigterm := make(chan os.Signal, 1)
-	signal.Notify(sigterm, syscall.SIGINT, syscall.SIGTERM)
-
-	// go routine to catch signal interrupt
-	go func() {
-		select {
-		case <-sigterm:
-			fmt.Println("terminating: via signal")
-			doneCh <- struct{}{}
-		}
-	}()
-
-	return <-doneCh
 }
 
 func main() {
@@ -109,5 +89,5 @@ func main() {
 		panic(err)
 	}
 
-	exitController()
+	ExitController()
 }
