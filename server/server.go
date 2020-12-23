@@ -1,16 +1,20 @@
 package server
 
 import (
+	"context"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/VertexC/log-formatter/config"
 	"github.com/VertexC/log-formatter/controller"
+	agentpb "github.com/VertexC/log-formatter/proto/pkg/agent"
 	"github.com/VertexC/log-formatter/server/db"
 	"github.com/VertexC/log-formatter/util"
 
 	"github.com/gin-gonic/gin"
 	_ "github.com/go-sql-driver/mysql"
+	"google.golang.org/grpc"
 )
 
 type AppConfig struct {
@@ -92,7 +96,8 @@ func NewApp(content interface{}) (*App, error) {
 	// register end points
 	router.GET("/app", app.listAgents)
 
-	// FIXME: change to POST later
+	// FIXME: change to proper method later, use Get for test
+	router.GET("/test", app.getAgentStatus)
 	return app, nil
 }
 
@@ -121,6 +126,42 @@ func (app *App) listAgents(c *gin.Context) {
 
 	// TODO: render page with form
 	c.JSON(200, response)
+}
+
+func (app *App) getAgentStatus(c *gin.Context) {
+	var (
+		conn *grpc.ClientConn
+		err  error
+	)
+	// FIXME: harcoded agent rpc address for now
+	// set out of time logic
+	conn, err = grpc.Dial("localhost:2001", grpc.WithInsecure(), grpc.WithBlock())
+
+	if err != nil {
+		app.logger.Error.Printf("Can not connect: %v", err)
+
+	}
+
+	defer conn.Close()
+	app.logger.Info.Printf("Start to Request Agent Status\n")
+	client := agentpb.NewLogFormatterAgentClient(conn)
+
+	// Contact the server and print out its response.
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	if err != nil {
+		app.logger.Error.Fatalf("could not greet: %v", err)
+	}
+
+	heartbeatRequest := &agentpb.HeartBeatRequest{}
+
+	r, err := client.GetHeartBeat(ctx, heartbeatRequest)
+	if err != nil {
+		app.logger.Error.Printf("Failed to get response: %s\n", err)
+	} else {
+		app.logger.Info.Printf("Got Response: %+v\n", *r)
+	}
+	// TODO: deal with heartbeat
 }
 
 func (app *App) updateAgents(c *gin.Context) {

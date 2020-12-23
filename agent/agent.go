@@ -140,7 +140,7 @@ func (manager *AgentsManager) StartHearBeat() {
 		conn, err = grpc.Dial("localhost:8081", grpc.WithInsecure(), grpc.WithBlock())
 
 		if err != nil {
-			manager.logger.Error.Fatalf("Can not connect: %v", err)
+			manager.logger.Error.Printf("Can not connect: %v", err)
 
 		} else {
 			break
