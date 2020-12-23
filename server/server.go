@@ -1,10 +1,12 @@
 package server
 
 import (
+	"fmt"
 	"log"
 
-	"github.com/VertexC/log-formatter/server/db"
+	"github.com/VertexC/log-formatter/config"
 	"github.com/VertexC/log-formatter/controller"
+	"github.com/VertexC/log-formatter/server/db"
 	"github.com/VertexC/log-formatter/util"
 
 	"github.com/gin-gonic/gin"
@@ -12,7 +14,9 @@ import (
 )
 
 type AppConfig struct {
-	Port string
+	Base       config.ConfigBase
+	ServerPort string `yaml: "serverport"`
+	RpcPort    string `yaml: "rpcport"`
 }
 
 // App instance at Run time
@@ -21,7 +25,7 @@ type App struct {
 	router *gin.Engine
 	config *AppConfig
 	agents map[uint64]db.Agent
-	ctr *controller.Controller
+	ctr    *controller.Controller
 	logger *util.Logger
 }
 
@@ -42,39 +46,63 @@ func CORSMiddleware() gin.HandlerFunc {
 	}
 }
 
-// TODO: add configuration control
 // NewApp
-func NewApp() (*App, error) {
+func NewApp(content interface{}) (*App, error) {
 	logger := util.NewLogger("WebServer")
-	// update and reset agents
+
+	// set config
+	contentMapStr, ok := content.(map[string]interface{})
+	if !ok {
+		err := fmt.Errorf("Failed to convert given config to mapStr")
+		logger.Error.Printf("%s\n", err)
+		return nil, err
+	}
+
+	config := &AppConfig{
+		Base: config.ConfigBase{
+			Content:          contentMapStr,
+			MandantoryFields: []string{"serverport", "rpcport"},
+		},
+	}
+	if err := config.Base.Validate(); err != nil {
+		logger.Error.Printf("%s\n", err)
+		return nil, err
+	}
+	util.YamlConvert(contentMapStr, config)
+
+	// create db connection. TODO: DB reconnectin until receive a valid connection
 	dbConn, err := db.NewDBConnector("test:test@tcp(127.0.0.1:3306)/logformatter")
 	if err != nil {
-		log.Fatalf("Failed to connect with DB: %s", err)
+		logger.Error.Fatalf("Failed to connect with DB: %s", err)
 	}
 
 	router := gin.Default()
 
 	router.Use(CORSMiddleware())
 
-	ctr := controller.NewController(nil)
+	ctr := controller.NewController(config.RpcPort)
 
 	app := &App{
 		dbConn: dbConn,
 		router: router,
-		config: &AppConfig{
-			Port: ":8080",
-		},
-		ctr: ctr,
+		config: config,
+		ctr:    ctr,
 		logger: logger,
 	}
 	// register end points
 	router.GET("/app", app.listAgents)
 
+	// FIXME: change to POST later
 	return app, nil
 }
 
 func (app *App) Start() {
-	go app.router.Run(app.config.Port)
+	go func() {
+		err := app.router.Run(":" + app.config.ServerPort)
+		if err != nil {
+			app.logger.Error.Fatalln(err)
+		}
+	}()
 	go app.ctr.Run()
 }
 

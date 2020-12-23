@@ -12,8 +12,8 @@ type DBConnector struct {
 }
 
 type Agent struct {
-	Id uint64
-	Status Status
+	Id      uint64
+	Status  Status
 	Address string
 }
 
@@ -36,13 +36,13 @@ func StatusFromStr(status string) (result Status) {
 	return
 }
 
-func NewDBConnector (url string) (*DBConnector, error) {
+func NewDBConnector(url string) (*DBConnector, error) {
 	db, err := sql.Open("mysql", url)
 	if err != nil {
 		log.Println(err)
 		return nil, err
 	}
-	connector := &DBConnector {
+	connector := &DBConnector{
 		db: db,
 	}
 	return connector, nil
@@ -60,7 +60,7 @@ func (connector *DBConnector) GetAgentList() ([]Agent, error) {
 		return nil, err
 	}
 	defer rows.Close()
-	agents := []Agent {}
+	agents := []Agent{}
 	for rows.Next() {
 		agent := Agent{}
 		var status string

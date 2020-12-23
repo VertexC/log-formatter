@@ -15,24 +15,24 @@ import (
 type Controller struct {
 	ctrpb.UnimplementedControllerServer
 	// agent address
-	agent string
+	agent   string
 	RpcPort string
-	logger *util.Logger
+	logger  *util.Logger
 }
 
-func NewController(content map[string]interface{}) *Controller {
+func NewController(port string) *Controller {
 	logger := util.NewLogger("controller")
 
 	// FIXME: hardcode for now
-	return &Controller {
-		logger: logger,
-		RpcPort: "8081",
+	return &Controller{
+		logger:  logger,
+		RpcPort: port,
 	}
 }
 
 func (ctr *Controller) UpdateAgentStatusRequest(c context.Context, heartbeat *agentpb.HeartBeat) (*ctrpb.ControllerRequestDone, error) {
 	ctr.logger.Info.Printf("Get UpdateAgentStatusRequest with hearbeat: %+v\n", heartbeat)
-	res := &ctrpb.ControllerRequestDone {}
+	res := &ctrpb.ControllerRequestDone{}
 	return res, nil
 }
 

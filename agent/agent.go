@@ -124,7 +124,7 @@ func (manager *AgentsManager) ChangeConfig(content interface{}) error {
 
 func (manager *AgentsManager) UpdateConfig(context context.Context, request *agentpb.UpdateConfigRequest) (*agentpb.UpdateConfigResponse, error) {
 	configBytes := request.Config
-	manager.logger.Debug.Println(string(configBytes))
+	manager.logger.Info.Printf("Get UpdateConfig Request: %s", string(configBytes))
 	return nil, nil
 }
 
@@ -133,7 +133,7 @@ func (manager *AgentsManager) StartHearBeat() {
 	// Set up a connection to the server.
 	var (
 		conn *grpc.ClientConn
-		err error
+		err  error
 	)
 
 	for {
@@ -142,18 +142,18 @@ func (manager *AgentsManager) StartHearBeat() {
 		if err != nil {
 			manager.logger.Error.Fatalf("Can not connect: %v", err)
 
-		}  else {
+		} else {
 			break
 		}
 		time.Sleep(5 * time.Second)
 	}
-	
+
 	defer conn.Close()
 	manager.logger.Info.Printf("Start to Send Heartbeat\n")
 	for {
-		heartbeat := &agentpb.HeartBeat {
+		heartbeat := &agentpb.HeartBeat{
 			Status: manager.Status,
-			Id: manager.config.Id,
+			Id:     manager.config.Id,
 		}
 		c := ctrpb.NewControllerClient(conn)
 
@@ -165,7 +165,7 @@ func (manager *AgentsManager) StartHearBeat() {
 		}
 
 		r, err := c.UpdateAgentStatusRequest(ctx, heartbeat)
-		if err != nil{
+		if err != nil {
 			manager.logger.Error.Printf("Failed to get response: %s\n", err)
 		} else {
 			manager.logger.Info.Printf("Got Response: %+v\n", *r)
