@@ -6,8 +6,10 @@ package agentpb;
 
 message HeartBeat {
     Status status = 1;
-    // id is the ID of log-formatter
+    // id is the ID of agent
     uint64 id = 2;
+    // rpc address of agent
+    string address = 3;
 }
 
 message HeartBeatRequest {
@@ -24,10 +26,6 @@ message UpdateConfigResponse {
 }
 
 message RequestHeader {
-    // id is the ID of log-formatter
-    uint64 id = 1;
-    // server's ip and port
-    string server = 2;
 }
 
 message ResponseHeader {

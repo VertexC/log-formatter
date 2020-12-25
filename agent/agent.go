@@ -175,10 +175,13 @@ func (manager *AgentsManager) StartHearBeat() {
 }
 
 func (manager *AgentsManager) GetHeartBeat(context context.Context, request *agentpb.HeartBeatRequest) (*agentpb.HeartBeat, error) {
+	// TODO: set controller address
 	manager.logger.Debug.Println("Got Heart Beat Get Request")
 	msg := &agentpb.HeartBeat{
 		Status: manager.Status,
 		Id:     manager.config.Id,
+		// FIXME: use ip
+		Address: "localhost:" + manager.config.RpcPort,
 	}
 	return msg, nil
 }

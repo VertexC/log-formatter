@@ -11,31 +11,6 @@ type DBConnector struct {
 	db *sql.DB
 }
 
-type Agent struct {
-	Id      uint64
-	Status  Status
-	Address string
-}
-
-type Status int
-
-const (
-	Running Status = iota
-	Stop
-)
-
-func StatusFromStr(status string) (result Status) {
-	switch status {
-	case "STOP":
-		result = Stop
-	case "Running":
-		result = Running
-	default:
-		log.Fatalln("Invalid status")
-	}
-	return
-}
-
 func NewDBConnector(url string) (*DBConnector, error) {
 	db, err := sql.Open("mysql", url)
 	if err != nil {

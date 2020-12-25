@@ -2,7 +2,9 @@ package controller
 
 import (
 	"context"
+	"fmt"
 	"net"
+	"time"
 
 	agentpb "github.com/VertexC/log-formatter/proto/pkg/agent"
 	ctrpb "github.com/VertexC/log-formatter/proto/pkg/controller"
@@ -15,25 +17,66 @@ import (
 type Controller struct {
 	ctrpb.UnimplementedControllerServer
 	// agent address
-	agent   string
-	RpcPort string
-	logger  *util.Logger
+	agent       string
+	RpcPort     string
+	logger      *util.Logger
+	heartbeatCh chan *agentpb.HeartBeat
 }
 
-func NewController(port string) *Controller {
+func NewController(port string, heartbeatCh chan *agentpb.HeartBeat) *Controller {
 	logger := util.NewLogger("controller")
 
 	// FIXME: hardcode for now
 	return &Controller{
-		logger:  logger,
-		RpcPort: port,
+		logger:      logger,
+		RpcPort:     port,
+		heartbeatCh: heartbeatCh,
 	}
 }
 
 func (ctr *Controller) UpdateAgentStatusRequest(c context.Context, heartbeat *agentpb.HeartBeat) (*ctrpb.ControllerRequestDone, error) {
 	ctr.logger.Info.Printf("Get UpdateAgentStatusRequest with hearbeat: %+v\n", heartbeat)
+	ctr.heartbeatCh <- heartbeat
 	res := &ctrpb.ControllerRequestDone{}
 	return res, nil
+}
+
+func (ctr *Controller) GetAgentHeartBeat(rpcAddr string) (*agentpb.HeartBeat, error) {
+	var (
+		conn *grpc.ClientConn
+		err  error
+	)
+	// FIXME: harcoded agent rpc address for now
+	// set out of time logic
+	conn, err = grpc.Dial(rpcAddr, grpc.WithInsecure(), grpc.WithBlock())
+
+	if err != nil {
+		err = fmt.Errorf("Can not connect: %v", err)
+		ctr.logger.Error.Printf("%s\n", err)
+		return nil, err
+	}
+
+	defer conn.Close()
+	ctr.logger.Info.Printf("Start to Request Agent Status\n")
+	client := agentpb.NewLogFormatterAgentClient(conn)
+
+	// Contact the server and print out its response.
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	if err != nil {
+		ctr.logger.Error.Fatalf("could not greet: %v", err)
+	}
+
+	heartbeatRequest := &agentpb.HeartBeatRequest{}
+
+	r, err := client.GetHeartBeat(ctx, heartbeatRequest)
+	if err != nil {
+		ctr.logger.Error.Printf("Failed to get response: %s\n", err)
+	} else {
+		ctr.logger.Info.Printf("Got Response: %+v\n", *r)
+	}
+
+	return r, err
 }
 
 func (ctr *Controller) Run() {
@@ -56,23 +99,3 @@ func (ctr *Controller) startRpcService() {
 		}
 	}()
 }
-
-// func main() {
-// 	// Set up a connection to the server.
-// 	conn, err := grpc.Dial("localhost:2001", grpc.WithInsecure(), grpc.WithBlock())
-// 	if err != nil {
-// 		log.Fatalf("did not connect: %v", err)
-// 	}
-// 	defer conn.Close()
-// 	c := agentpb.NewLogFormatterAgentClient(conn)
-
-// 	// Contact the server and print out its response.
-// 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-// 	defer cancel()
-// 	heartbeatRequest := &agentpb.HeartBeatRequest{}
-// 	r, err := c.GetHeartBeat(ctx, heartbeatRequest)
-// 	if err != nil {
-// 		log.Fatalf("could not greet: %v", err)
-// 	}
-// 	log.Printf("Got Heartbeat: %+v\n", *r)
-// }

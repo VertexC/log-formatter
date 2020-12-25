@@ -1,20 +1,18 @@
 package server
 
 import (
-	"context"
+	"encoding/json"
 	"fmt"
 	"log"
-	"time"
 
 	"github.com/VertexC/log-formatter/config"
-	"github.com/VertexC/log-formatter/controller"
+	ctr "github.com/VertexC/log-formatter/controller"
 	agentpb "github.com/VertexC/log-formatter/proto/pkg/agent"
 	"github.com/VertexC/log-formatter/server/db"
 	"github.com/VertexC/log-formatter/util"
 
 	"github.com/gin-gonic/gin"
 	_ "github.com/go-sql-driver/mysql"
-	"google.golang.org/grpc"
 )
 
 type AppConfig struct {
@@ -24,13 +22,19 @@ type AppConfig struct {
 }
 
 // App instance at Run time
+// most recent agents information is maintained in memory
+// db updates only happens when
+// 1) create a new agent instance
+// 2) delete a agent instance
+// 3) a heartbeat comes from a new agent
 type App struct {
-	dbConn *db.DBConnector
-	router *gin.Engine
-	config *AppConfig
-	agents map[uint64]db.Agent
-	ctr    *controller.Controller
-	logger *util.Logger
+	dbConn      *db.DBConnector
+	router      *gin.Engine
+	config      *AppConfig
+	agents      map[uint64]db.Agent
+	ctr         *ctr.Controller
+	heartbeatCh chan *agentpb.HeartBeat
+	logger      *util.Logger
 }
 
 func CORSMiddleware() gin.HandlerFunc {
@@ -81,23 +85,23 @@ func NewApp(content interface{}) (*App, error) {
 	}
 
 	router := gin.Default()
-
 	router.Use(CORSMiddleware())
 
-	ctr := controller.NewController(config.RpcPort)
+	heartbeatCh := make(chan *agentpb.HeartBeat, 1000)
+	ctr := ctr.NewController(config.RpcPort, heartbeatCh)
 
 	app := &App{
-		dbConn: dbConn,
-		router: router,
-		config: config,
-		ctr:    ctr,
-		logger: logger,
+		dbConn:      dbConn,
+		router:      router,
+		config:      config,
+		ctr:         ctr,
+		logger:      logger,
+		heartbeatCh: heartbeatCh,
 	}
+	app.agents = make(map[uint64]db.Agent)
 	// register end points
 	router.GET("/app", app.listAgents)
 
-	// FIXME: change to proper method later, use Get for test
-	router.GET("/test", app.getAgentStatus)
 	return app, nil
 }
 
@@ -108,62 +112,49 @@ func (app *App) Start() {
 			app.logger.Error.Fatalln(err)
 		}
 	}()
+	// start controller
 	go app.ctr.Run()
+	// process heartbaet
+	go func() {
+		for heartbeat := range app.heartbeatCh {
+			app.handleHeartBeat(heartbeat)
+		}
+	}()
 }
 
+// listAgents show each agent's status from database
 func (app *App) listAgents(c *gin.Context) {
+	data, err := json.Marshal(app.agents)
+	if err != nil {
+		c.JSON(200, "Failed")
+	} else {
+		response := gin.H{"agent": string(data)}
+		// TODO: render page with form
+		c.JSON(200, response)
+	}
+}
+
+func (app *App) initAgentsFromDB() {
 	agents, err := app.dbConn.GetAgentList()
 	if err != nil {
 		log.Fatalln("Failed to get agent list: %s", err)
 	}
-	app.agents = make(map[uint64]db.Agent)
 
 	for _, agent := range agents {
 		log.Printf("id:%d agent:%+v\n", agent.Id, agent)
 		app.agents[agent.Id] = agent
 	}
-	response := gin.H{"agent": app.agents}
-
-	// TODO: render page with form
-	c.JSON(200, response)
 }
 
-func (app *App) getAgentStatus(c *gin.Context) {
-	var (
-		conn *grpc.ClientConn
-		err  error
-	)
-	// FIXME: harcoded agent rpc address for now
-	// set out of time logic
-	conn, err = grpc.Dial("localhost:2001", grpc.WithInsecure(), grpc.WithBlock())
-
-	if err != nil {
-		app.logger.Error.Printf("Can not connect: %v", err)
-
+func (app *App) handleHeartBeat(heartbeat *agentpb.HeartBeat) {
+	app.logger.Info.Printf("handleHeartbeat: %+v\n", *heartbeat)
+	agent := db.Agent{
+		Id:      heartbeat.Id,
+		Address: heartbeat.Address,
+		Status:  db.StatusFromStr(heartbeat.Status.String()),
 	}
-
-	defer conn.Close()
-	app.logger.Info.Printf("Start to Request Agent Status\n")
-	client := agentpb.NewLogFormatterAgentClient(conn)
-
-	// Contact the server and print out its response.
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
-	if err != nil {
-		app.logger.Error.Fatalf("could not greet: %v", err)
+	if _, ok := app.agents[agent.Id]; !ok {
+		// TODO: write to database
 	}
-
-	heartbeatRequest := &agentpb.HeartBeatRequest{}
-
-	r, err := client.GetHeartBeat(ctx, heartbeatRequest)
-	if err != nil {
-		app.logger.Error.Printf("Failed to get response: %s\n", err)
-	} else {
-		app.logger.Info.Printf("Got Response: %+v\n", *r)
-	}
-	// TODO: deal with heartbeat
-}
-
-func (app *App) updateAgents(c *gin.Context) {
-	// TODO: replace file
+	app.agents[agent.Id] = agent
 }
