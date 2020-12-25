@@ -42,13 +42,9 @@ func (ctr *Controller) UpdateAgentStatusRequest(c context.Context, heartbeat *ag
 }
 
 func (ctr *Controller) GetAgentHeartBeat(rpcAddr string) (*agentpb.HeartBeat, error) {
-	var (
-		conn *grpc.ClientConn
-		err  error
-	)
 	// FIXME: harcoded agent rpc address for now
 	// set out of time logic
-	conn, err = grpc.Dial(rpcAddr, grpc.WithInsecure(), grpc.WithBlock())
+	conn, err := grpc.Dial(rpcAddr, grpc.WithInsecure(), grpc.WithBlock())
 
 	if err != nil {
 		err = fmt.Errorf("Can not connect: %v", err)
@@ -72,11 +68,10 @@ func (ctr *Controller) GetAgentHeartBeat(rpcAddr string) (*agentpb.HeartBeat, er
 	r, err := client.GetHeartBeat(ctx, heartbeatRequest)
 	if err != nil {
 		ctr.logger.Error.Printf("Failed to get response: %s\n", err)
-	} else {
-		ctr.logger.Info.Printf("Got Response: %+v\n", *r)
+		return nil, err
 	}
-
-	return r, err
+	ctr.logger.Info.Printf("Got Response: %+v\n", *r)
+	return r, nil
 }
 
 func (ctr *Controller) Run() {

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strconv"
 
 	"github.com/VertexC/log-formatter/config"
 	ctr "github.com/VertexC/log-formatter/controller"
@@ -101,6 +102,7 @@ func NewApp(content interface{}) (*App, error) {
 	app.agents = make(map[uint64]db.Agent)
 	// register end points
 	router.GET("/app", app.listAgents)
+	router.GET("/agent", app.updateAgent)
 
 	return app, nil
 }
@@ -132,6 +134,30 @@ func (app *App) listAgents(c *gin.Context) {
 		// TODO: render page with form
 		c.JSON(200, response)
 	}
+}
+
+func (app *App) updateAgent(c *gin.Context) {
+	data, err := strconv.Atoi(c.Query("id"))
+	if err != nil {
+		c.JSON(200, fmt.Sprintf("Invalid id %d", c.Query("id")))
+		return
+	}
+	id := uint64(data)
+	agent, ok := app.agents[id]
+	if !ok {
+		c.JSON(200, fmt.Sprintf("No Agent with id %d", id))
+		return
+	}
+	address := agent.Address
+	heartbeat, err := app.ctr.GetAgentHeartBeat(address)
+	app.logger.Debug.Printf("%+v %v", *heartbeat, err)
+	if err != nil {
+		c.JSON(200, fmt.Sprintf("Failed with error: %v", err))
+		return
+	}
+	app.handleHeartBeat(heartbeat)
+	c.JSON(200, "Success")
+
 }
 
 func (app *App) initAgentsFromDB() {

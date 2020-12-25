@@ -171,7 +171,7 @@ func (manager *AgentsManager) StartHearBeat() {
 		} else {
 			manager.logger.Info.Printf("Got Response: %+v\n", *r)
 		}
-		time.Sleep(1 * time.Second)
+		time.Sleep(5 * time.Second)
 	}
 }
 
