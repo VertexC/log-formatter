@@ -29,3 +29,7 @@ func StatusFromStr(status string) (result Status) {
 	}
 	return
 }
+
+func (status Status) String() string {
+	return []string{"Stop", "Running"}[status]
+}

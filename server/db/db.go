@@ -1,6 +1,7 @@
 package db
 
 import (
+	"fmt"
 	"log"
 
 	"database/sql"
@@ -56,5 +57,21 @@ func (connector *DBConnector) GetAgentList() ([]Agent, error) {
 
 // UpdateAgent update database with given agent information
 func (connector *DBConnector) UpdateAgent(agent Agent) error {
+	return nil
+}
+
+func (connector *DBConnector) AddAgent(agent Agent) error {
+	sql := fmt.Sprintf(
+		"insert into agent(id, address, status) values (%d, '%s', '%s')",
+		agent.Id,
+		agent.Address,
+		agent.Status.String(),
+	)
+	_, err := connector.db.Exec(sql)
+	if err != nil {
+		log.Println("exec failed:", err, ", sql:", sql)
+		return err
+	}
+	log.Println("Add Agent Asucess")
 	return nil
 }

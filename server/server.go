@@ -154,7 +154,7 @@ func (app *App) handleHeartBeat(heartbeat *agentpb.HeartBeat) {
 		Status:  db.StatusFromStr(heartbeat.Status.String()),
 	}
 	if _, ok := app.agents[agent.Id]; !ok {
-		// TODO: write to database
+		app.dbConn.AddAgent(agent)
 	}
 	app.agents[agent.Id] = agent
 }

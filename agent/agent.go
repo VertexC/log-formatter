@@ -137,7 +137,7 @@ func (manager *AgentsManager) StartHearBeat() {
 	)
 
 	for {
-		conn, err = grpc.Dial("localhost:8081", grpc.WithInsecure(), grpc.WithBlock())
+		conn, err = grpc.Dial(manager.config.Controller, grpc.WithInsecure(), grpc.WithBlock())
 
 		if err != nil {
 			manager.logger.Error.Printf("Can not connect: %v", err)
@@ -152,8 +152,9 @@ func (manager *AgentsManager) StartHearBeat() {
 	manager.logger.Info.Printf("Start to Send Heartbeat\n")
 	for {
 		heartbeat := &agentpb.HeartBeat{
-			Status: manager.Status,
-			Id:     manager.config.Id,
+			Status:  manager.Status,
+			Id:      manager.config.Id,
+			Address: "localhost:" + manager.config.RpcPort,
 		}
 		c := ctrpb.NewControllerClient(conn)
 
