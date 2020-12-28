@@ -29,16 +29,16 @@ func (connector *DBConnector) Close() {
 }
 
 // GetAgentList get all info of agent from database
-func (connector *DBConnector) GetAgentList() ([]Agent, error) {
+func (connector *DBConnector) GetAgentList() ([]*Agent, error) {
 	db := connector.db
 	rows, err := db.Query("select id, address, status from agent")
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	agents := []Agent{}
+	agents := []*Agent{}
 	for rows.Next() {
-		agent := Agent{}
+		agent := new(Agent)
 		var status string
 		err := rows.Scan(&agent.Id, &agent.Address, &status)
 		if err != nil {

@@ -44,7 +44,7 @@ func (ctr *Controller) UpdateAgentStatusRequest(c context.Context, heartbeat *ag
 func (ctr *Controller) GetAgentHeartBeat(rpcAddr string) (*agentpb.HeartBeat, error) {
 	// FIXME: harcoded agent rpc address for now
 	// set out of time logic
-	conn, err := grpc.Dial(rpcAddr, grpc.WithInsecure(), grpc.WithBlock())
+	conn, err := grpc.Dial(rpcAddr, grpc.WithInsecure(), grpc.WithBlock(), grpc.WithTimeout(time.Duration(1)*time.Second))
 
 	if err != nil {
 		err = fmt.Errorf("Can not connect: %v", err)

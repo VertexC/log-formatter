@@ -32,7 +32,7 @@ type App struct {
 	dbConn      *db.DBConnector
 	router      *gin.Engine
 	config      *AppConfig
-	agents      map[uint64]db.Agent
+	agentsMap   *db.AgentsSyncMap
 	ctr         *ctr.Controller
 	heartbeatCh chan *agentpb.HeartBeat
 	logger      *util.Logger
@@ -99,7 +99,7 @@ func NewApp(content interface{}) (*App, error) {
 		logger:      logger,
 		heartbeatCh: heartbeatCh,
 	}
-	app.agents = make(map[uint64]db.Agent)
+	app.agentsMap = db.NewAgentsSyncMap()
 	// register end points
 	router.GET("/app", app.listAgents)
 	router.GET("/agent", app.updateAgent)
@@ -108,6 +108,7 @@ func NewApp(content interface{}) (*App, error) {
 }
 
 func (app *App) Start() {
+	app.initAgentsFromDB()
 	go func() {
 		err := app.router.Run(":" + app.config.ServerPort)
 		if err != nil {
@@ -126,9 +127,10 @@ func (app *App) Start() {
 
 // listAgents show each agent's status from database
 func (app *App) listAgents(c *gin.Context) {
-	data, err := json.Marshal(app.agents)
+	agents := app.agentsMap.GetAll()
+	data, err := json.Marshal(agents)
 	if err != nil {
-		c.JSON(200, "Failed")
+		c.JSON(503, "Failed to get agents")
 	} else {
 		response := gin.H{"agent": string(data)}
 		// TODO: render page with form
@@ -139,25 +141,28 @@ func (app *App) listAgents(c *gin.Context) {
 func (app *App) updateAgent(c *gin.Context) {
 	data, err := strconv.Atoi(c.Query("id"))
 	if err != nil {
-		c.JSON(200, fmt.Sprintf("Invalid id %d", c.Query("id")))
+		c.JSON(400, fmt.Sprintf("Invalid id %d", c.Query("id")))
 		return
 	}
 	id := uint64(data)
-	agent, ok := app.agents[id]
-	if !ok {
-		c.JSON(200, fmt.Sprintf("No Agent with id %d", id))
+	agent, err := app.agentsMap.TryGet(id)
+	if err != nil {
+		c.JSON(503, err)
 		return
 	}
 	address := agent.Address
 	heartbeat, err := app.ctr.GetAgentHeartBeat(address)
-	app.logger.Debug.Printf("%+v %v", *heartbeat, err)
 	if err != nil {
-		c.JSON(200, fmt.Sprintf("Failed with error: %v", err))
+		defer func() {
+			agent.Status = db.Unknown
+			app.agentsMap.Update(agent)
+		}()
+		c.JSON(503, fmt.Sprintf("Failed to get agent heartbeat with error: %v", err))
 		return
 	}
+	app.logger.Debug.Printf("%+v %v", *heartbeat, err)
 	app.handleHeartBeat(heartbeat)
 	c.JSON(200, "Success")
-
 }
 
 func (app *App) initAgentsFromDB() {
@@ -168,7 +173,7 @@ func (app *App) initAgentsFromDB() {
 
 	for _, agent := range agents {
 		log.Printf("id:%d agent:%+v\n", agent.Id, agent)
-		app.agents[agent.Id] = agent
+		app.agentsMap.Update(*agent)
 	}
 }
 
@@ -179,8 +184,5 @@ func (app *App) handleHeartBeat(heartbeat *agentpb.HeartBeat) {
 		Address: heartbeat.Address,
 		Status:  db.StatusFromStr(heartbeat.Status.String()),
 	}
-	if _, ok := app.agents[agent.Id]; !ok {
-		app.dbConn.AddAgent(agent)
-	}
-	app.agents[agent.Id] = agent
+	app.agentsMap.Update(agent)
 }
