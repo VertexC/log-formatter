@@ -16,6 +16,7 @@ import (
 	"github.com/VertexC/log-formatter/util"
 
 	"google.golang.org/grpc"
+	"gopkg.in/yaml.v3"
 )
 
 const (
@@ -141,42 +142,41 @@ func (manager *AgentsManager) StartHearBeat() {
 
 		if err != nil {
 			manager.logger.Error.Printf("Can not connect: %v", err)
-
 		} else {
-			break
-		}
-		time.Sleep(5 * time.Second)
-	}
+			defer conn.Close()
+			manager.logger.Info.Printf("Start to Send Heartbeat\n")
+			for {
+				// ignore error here, as we always get cfg from bytes
+				cfgBytes, _ := yaml.Marshal(manager.config.BaseConfig.Content)
+				heartbeat := &agentpb.HeartBeat{
+					Status:  manager.Status,
+					Id:      manager.config.Id,
+					Address: "localhost:" + manager.config.RpcPort,
+					Config:  cfgBytes,
+				}
+				c := ctrpb.NewControllerClient(conn)
 
-	defer conn.Close()
-	manager.logger.Info.Printf("Start to Send Heartbeat\n")
-	for {
-		heartbeat := &agentpb.HeartBeat{
-			Status:  manager.Status,
-			Id:      manager.config.Id,
-			Address: "localhost:" + manager.config.RpcPort,
-		}
-		c := ctrpb.NewControllerClient(conn)
+				// Contact the server and print out its response.
+				ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+				defer cancel()
+				if err != nil {
+					manager.logger.Error.Fatalf("could not greet: %v", err)
+				}
 
-		// Contact the server and print out its response.
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-		defer cancel()
-		if err != nil {
-			manager.logger.Error.Fatalf("could not greet: %v", err)
-		}
-
-		r, err := c.UpdateAgentStatusRequest(ctx, heartbeat)
-		if err != nil {
-			manager.logger.Error.Printf("Failed to get response: %s\n", err)
-		} else {
-			manager.logger.Info.Printf("Got Response: %+v\n", *r)
+				r, err := c.UpdateAgentStatusRequest(ctx, heartbeat)
+				if err != nil {
+					manager.logger.Error.Printf("Failed to get response: %s\n", err)
+				} else {
+					manager.logger.Info.Printf("Got Response: %+v\n", *r)
+				}
+				time.Sleep(5 * time.Second)
+			}
 		}
 		time.Sleep(5 * time.Second)
 	}
 }
 
 func (manager *AgentsManager) GetHeartBeat(context context.Context, request *agentpb.HeartBeatRequest) (*agentpb.HeartBeat, error) {
-	// TODO: set controller address
 	manager.logger.Debug.Println("Got Heart Beat Get Request")
 	msg := &agentpb.HeartBeat{
 		Status: manager.Status,

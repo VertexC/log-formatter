@@ -10,6 +10,7 @@ message HeartBeat {
     uint64 id = 2;
     // rpc address of agent
     string address = 3;
+    bytes config = 4;
 }
 
 message HeartBeatRequest {

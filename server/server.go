@@ -102,7 +102,7 @@ func NewApp(content interface{}) (*App, error) {
 	app.agentsMap = db.NewAgentsSyncMap()
 	// register end points
 	router.GET("/app", app.listAgents)
-	router.GET("/agent", app.updateAgent)
+	router.GET("/agent", app.refreshAgent)
 
 	return app, nil
 }
@@ -138,7 +138,7 @@ func (app *App) listAgents(c *gin.Context) {
 	}
 }
 
-func (app *App) updateAgent(c *gin.Context) {
+func (app *App) refreshAgent(c *gin.Context) {
 	data, err := strconv.Atoi(c.Query("id"))
 	if err != nil {
 		c.JSON(400, fmt.Sprintf("Invalid id %d", c.Query("id")))
@@ -178,11 +178,12 @@ func (app *App) initAgentsFromDB() {
 }
 
 func (app *App) handleHeartBeat(heartbeat *agentpb.HeartBeat) {
-	app.logger.Info.Printf("handleHeartbeat: %+v\n", *heartbeat)
+	app.logger.Info.Printf("handleHeartbeat: %+v\n config: %v\n", *heartbeat, string(heartbeat.Config))
 	agent := db.Agent{
 		Id:      heartbeat.Id,
 		Address: heartbeat.Address,
 		Status:  db.StatusFromStr(heartbeat.Status.String()),
+		Config:  string(heartbeat.Config),
 	}
 	app.agentsMap.Update(agent)
 }

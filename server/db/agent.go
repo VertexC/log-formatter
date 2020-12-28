@@ -11,6 +11,8 @@ type Agent struct {
 	Status Status `json:"status"`
 	// rpc connection address of agent
 	Address string `json:"address"`
+	// config is a place holder of config
+	Config string `json:"config"`
 }
 
 type AgentsSyncMap struct {
