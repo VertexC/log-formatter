@@ -103,6 +103,7 @@ func NewApp(content interface{}) (*App, error) {
 	// register end points
 	router.GET("/app", app.listAgents)
 	router.GET("/agent", app.refreshAgent)
+	router.PUT("/config", app.updateConfig)
 
 	return app, nil
 }
@@ -162,6 +163,29 @@ func (app *App) refreshAgent(c *gin.Context) {
 	}
 	app.logger.Debug.Printf("%+v %v", *heartbeat, err)
 	app.handleHeartBeat(heartbeat)
+	c.JSON(200, "Success")
+}
+
+func (app *App) updateConfig(c *gin.Context) {
+	data, err := strconv.Atoi(c.Query("id"))
+	if err != nil {
+		c.JSON(400, fmt.Sprintf("Invalid id %d", c.Query("id")))
+		return
+	}
+	id := uint64(data)
+	agent, err := app.agentsMap.TryGet(id)
+	if err != nil {
+		c.JSON(503, err)
+		return
+	}
+	address := agent.Address
+	config := `
+pipeline:
+  worker: 4
+  formatters:
+    - forwarder:
+`
+	_, err = app.ctr.UpdateConfig(address, []byte(config))
 	c.JSON(200, "Success")
 }
 

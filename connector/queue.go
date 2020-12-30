@@ -49,3 +49,11 @@ func (q *DocQueue) Get() map[string]interface{} {
 	defer q.docConsumed.Inc()
 	return <-q.docCh
 }
+
+func (q *DocQueue) GetCh() chan map[string]interface{} {
+	return q.docCh
+}
+
+func (q *DocQueue) ConsumedInc() {
+	q.docConsumed.Inc()
+}

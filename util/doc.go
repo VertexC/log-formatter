@@ -4,17 +4,14 @@ import (
 	"reflect"
 )
 
-// Doc is a wrap type over map[string]interface{} with other functionalities
-type Doc map[string]interface{}
-
 var (
-	endDoc Doc = nil
+	endDoc map[string]interface{} = nil
 )
 
-func IsEndDoc(doc Doc) bool {
+func IsEndDoc(doc map[string]interface{}) bool {
 	return reflect.DeepEqual(doc, endDoc)
 }
 
-func GetEndDoc() Doc {
+func EndDoc() map[string]interface{} {
 	return endDoc
 }

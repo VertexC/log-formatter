@@ -44,7 +44,7 @@ func (agent *InputAgent) SetConnector(conn *connector.Connector) {
 	agent.conn = conn
 }
 
-func (agent *InputAgent) ChangeConfig(content interface{}) error {
+func (agent *InputAgent) SetConfig(content interface{}) error {
 	// TODO: clean up resource of previous agent
 	contentMapStr, ok := content.(map[string]interface{})
 	if !ok {

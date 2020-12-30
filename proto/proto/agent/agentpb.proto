@@ -23,7 +23,7 @@ message UpdateConfigRequest {
 }
 
 message UpdateConfigResponse {
-    ResponseHeader respsone = 1;
+    ResponseHeader header = 1;
 }
 
 message RequestHeader {

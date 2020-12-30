@@ -13,20 +13,20 @@ import (
 // if str consist xxx{{field}}xxx, the `function` will replace
 // `field` with doc[field]
 // otherwise, the `function` simply return s
-func DynamicFromField(s string) func(Doc) string {
+func DynamicFromField(s string) func(map[string]interface{}) string {
 	// {{field}}
 	regexpStr := `\{\{(?P<index>.*?)\}\}`
 	r := regexp.MustCompile(regexpStr)
 	matchMap, err := SubMatchMapRegex(regexpStr, s)
 	if err == nil {
 		if token, exist := matchMap["index"]; exist {
-			return func(doc Doc) string {
+			return func(doc map[string]interface{}) string {
 				index := doc[token].(string)
 				return r.ReplaceAllString(s, index)
 			}
 		}
 	}
-	return func(doc Doc) string {
+	return func(doc map[string]interface{}) string {
 		return s
 	}
 }

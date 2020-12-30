@@ -41,6 +41,39 @@ func (ctr *Controller) UpdateAgentStatusRequest(c context.Context, heartbeat *ag
 	return res, nil
 }
 
+func (ctr *Controller) UpdateConfig(rpcAddr string, configBytes []byte) (*agentpb.UpdateConfigResponse, error) {
+	conn, err := grpc.Dial(rpcAddr, grpc.WithInsecure(), grpc.WithBlock(), grpc.WithTimeout(time.Duration(1)*time.Second))
+
+	if err != nil {
+		err = fmt.Errorf("Can not connect: %v", err)
+		ctr.logger.Error.Printf("%s\n", err)
+		return nil, err
+	}
+
+	defer conn.Close()
+	ctr.logger.Info.Printf("Start to Update Agent's Config\n")
+	client := agentpb.NewLogFormatterAgentClient(conn)
+
+	// Contact the server and print out its response.
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	if err != nil {
+		ctr.logger.Error.Fatalf("could not greet: %v", err)
+	}
+
+	updateConfigRequest := &agentpb.UpdateConfigRequest{
+		Config: configBytes,
+	}
+
+	r, err := client.UpdateConfig(ctx, updateConfigRequest)
+	if err != nil {
+		ctr.logger.Error.Printf("Failed to get response: %s\n", err)
+		return nil, err
+	}
+	ctr.logger.Info.Printf("Got Response: %+v\n", *r)
+	return r, nil
+}
+
 func (ctr *Controller) GetAgentHeartBeat(rpcAddr string) (*agentpb.HeartBeat, error) {
 	// FIXME: harcoded agent rpc address for now
 	// set out of time logic

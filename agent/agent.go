@@ -28,7 +28,7 @@ const (
 type Agent interface {
 	Run()
 	SetConnector(*connector.Connector)
-	ChangeConfig(interface{}) error
+	SetConfig(interface{}) error
 }
 
 type AgentsManagerConfig struct {
@@ -85,7 +85,7 @@ func (manager *AgentsManager) Run() {
 	for _, agent := range manager.agents {
 		go agent.Run()
 	}
-	go manager.StartHearBeat()
+	// go manager.StartHearBeat()
 }
 
 func (manager *AgentsManager) ChangeConfig(content interface{}) error {
@@ -113,20 +113,57 @@ func (manager *AgentsManager) ChangeConfig(content interface{}) error {
 
 	// update config of each agent
 	for name, agent := range manager.agents {
-		if err := agent.ChangeConfig(manager.config.BaseConfig.Content[name]); err != nil {
+		if err := agent.SetConfig(manager.config.BaseConfig.Content[name]); err != nil {
 			err = fmt.Errorf("Failed to create %s: %s", name, err)
 			manager.logger.Error.Printf("%s\n", err)
 			return err
 		}
 	}
-
 	return nil
 }
 
 func (manager *AgentsManager) UpdateConfig(context context.Context, request *agentpb.UpdateConfigRequest) (*agentpb.UpdateConfigResponse, error) {
 	configBytes := request.Config
-	manager.logger.Info.Printf("Get UpdateConfig Request: %s", string(configBytes))
-	return nil, nil
+	configStr := string(request.Config)
+	manager.logger.Info.Printf("Get UpdateConfig Request: %s", configStr)
+	configMapStr, err := config.LoadMapStrFromYamlBytes(configBytes)
+
+	failedRes := &agentpb.UpdateConfigResponse{
+		Header: &agentpb.ResponseHeader{
+			Id: manager.config.Id,
+			Error: &agentpb.Error{
+				Type: agentpb.ErrorType_FAILED,
+			},
+		},
+	}
+	if err != nil {
+		errStr := fmt.Sprintf("Invalid Config :%s", err)
+		manager.logger.Error.Printf("%s\n", errStr)
+		failedRes.Header.Error.Message = errStr
+		return failedRes, nil
+	}
+	// only support update pipeline config
+	if pipelineCfg, ok := configMapStr[Pipeline]; !ok {
+		errStr := fmt.Sprintf("Pipeline config not found\n")
+		manager.logger.Error.Printf("%s\n", errStr)
+		failedRes.Header.Error.Message = errStr
+		return failedRes, nil
+	} else {
+		if err := manager.agents[Pipeline].(*pipeline.PipelineAgent).ChangeConfig(pipelineCfg); err != nil {
+			errStr := fmt.Sprintf("Failed to change pipeline;s config\n")
+			manager.logger.Error.Printf("%s\n", errStr)
+			failedRes.Header.Error.Message = errStr
+			return failedRes, nil
+		}
+	}
+	return &agentpb.UpdateConfigResponse{
+		Header: &agentpb.ResponseHeader{
+			Id: manager.config.Id,
+			Error: &agentpb.Error{
+				Type: agentpb.ErrorType_OK,
+			},
+		},
+	}, nil
 }
 
 func (manager *AgentsManager) StartHearBeat() {

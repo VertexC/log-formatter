@@ -45,7 +45,7 @@ func (agent *OutputAgent) SetConnector(conn *connector.Connector) {
 	agent.conn = conn
 }
 
-func (agent *OutputAgent) ChangeConfig(content interface{}) error {
+func (agent *OutputAgent) SetConfig(content interface{}) error {
 	contentMapStr, ok := content.(map[string]interface{})
 	if !ok {
 		return fmt.Errorf("Cannot convert given config to mapStr")

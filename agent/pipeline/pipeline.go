@@ -1,60 +1,17 @@
 package pipeline
 
 import (
+	"context"
 	"fmt"
+	"sync"
 
 	"github.com/VertexC/log-formatter/config"
 	"github.com/VertexC/log-formatter/connector"
 	"github.com/VertexC/log-formatter/util"
 )
 
-type Label struct {
-	Key string `yaml: "key"`
-	Val string `yaml: "val"`
-}
-
-type Formatter interface {
-	Format(map[string]interface{}) (map[string]interface{}, error)
-}
-
-type Factory = func(interface{}) (Formatter, error)
-
-var registry = make(map[string]Factory)
-var logger = util.NewLogger("PIPLINE")
-
-func Register(name string, factory Factory) error {
-	logger.Info.Printf("Registering formatter <%s>\n", name)
-	if name == "" {
-		return fmt.Errorf("Error registering formatter: name cannot be empty")
-	}
-	if factory == nil {
-		return fmt.Errorf("Error registering formatter '%v': factory cannot be empty", name)
-	}
-	if _, exists := registry[name]; exists {
-		return fmt.Errorf("Error registering formatter '%v': already registered", name)
-	}
-
-	registry[name] = factory
-	logger.Info.Printf("Successfully registered formatter <%s>\n", name)
-
-	return nil
-}
-
-func NewFormatter(content interface{}) (Formatter, error) {
-	contentMapStr, ok := content.(map[string]interface{})
-	if !ok {
-		return nil, fmt.Errorf("Cannot convert given formatter config to mapStr")
-	}
-	for name, val := range contentMapStr {
-		if factory, ok := registry[name]; ok {
-			output, err := factory(val)
-			return output, err
-		}
-	}
-	return nil, fmt.Errorf("Failed to creat any output target")
-}
-
 type worker struct {
+	ctx    context.Context
 	conn   *connector.Connector
 	logger *util.Logger
 	// TODO: move labelling to proper component of log-formatter
@@ -75,13 +32,15 @@ type PipelineAgent struct {
 type Pipeline struct {
 	logger  *util.Logger
 	workers []*worker
+	cancel  context.CancelFunc
+	done    chan struct{}
 }
 
 func (agent *PipelineAgent) SetConnector(conn *connector.Connector) {
 	agent.conn = conn
 }
 
-func (agent *PipelineAgent) ChangeConfig(content interface{}) error {
+func (agent *PipelineAgent) SetConfig(content interface{}) error {
 	logger := util.NewLogger("pipeline")
 	contentMapStr, ok := content.(map[string]interface{})
 	if !ok {
@@ -106,8 +65,13 @@ func (agent *PipelineAgent) ChangeConfig(content interface{}) error {
 	if !ok {
 		return fmt.Errorf("Failed to convert config to []MapStr")
 	}
+
+	ctx, cancel := context.WithCancel(context.Background())
 	pipeline := new(Pipeline)
 	pipeline.logger = logger
+	pipeline.cancel = cancel
+	pipeline.done = make(chan struct{})
+
 	for i := 0; i < config.Worker; i++ {
 		fmts := []Formatter{}
 		for _, c := range formatterCfgs {
@@ -122,6 +86,7 @@ func (agent *PipelineAgent) ChangeConfig(content interface{}) error {
 			conn:       agent.conn,
 			logger:     logger,
 			formatters: fmts,
+			ctx:        ctx,
 		}
 		pipeline.workers = append(pipeline.workers, w)
 	}
@@ -130,18 +95,38 @@ func (agent *PipelineAgent) ChangeConfig(content interface{}) error {
 }
 
 func (agent *PipelineAgent) Run() {
-	agent.pipeline.Run()
+	go agent.pipeline.run()
 }
 
-func (pipeline *Pipeline) Run() {
-	for _, worker := range pipeline.workers {
-		go worker.Run()
+func (agent *PipelineAgent) ChangeConfig(content interface{}) error {
+	pipelineOld := agent.pipeline
+	// if cannot create new pipeline from config, continue to run
+	if err := agent.SetConfig(content); err != nil {
+		return err
 	}
+	// new piepline has been created, stop the old pipeline
+	pipelineOld.cancel()
+	<-pipelineOld.done
+	logger.Info.Printf("Previous pipeline has stopped, start to run new pipeline\n")
+	go agent.pipeline.run()
+	return nil
 }
 
-func (w *worker) Run() {
-	for {
-		doc := w.conn.InGate.Get()
+func (pipeline *Pipeline) run() {
+	var wg sync.WaitGroup
+	for _, worker := range pipeline.workers {
+		wg.Add(1)
+		go worker.run(&wg)
+	}
+	wg.Wait()
+	pipeline.done <- struct{}{}
+}
+
+func (w *worker) run(wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	ch := make(chan map[string]interface{})
+	doFormat := func(doc map[string]interface{}) {
 		discard := false
 		for _, fmt := range w.formatters {
 			var err error
@@ -157,5 +142,14 @@ func (w *worker) Run() {
 			}
 			w.conn.OutGate.Put(doc)
 		}
+	}
+	select {
+	case doc := <-w.conn.InGate.GetCh():
+		w.conn.InGate.ConsumedInc()
+		doFormat(doc)
+	case <-w.ctx.Done():
+		w.logger.Info.Printf("Try to close a pipeline worker.\n")
+		close(ch)
+		break
 	}
 }
