@@ -44,7 +44,7 @@ func (connector *DBConnector) GetAgentList() ([]*Agent, error) {
 		if err != nil {
 			log.Fatal(err)
 		}
-		agent.Status = StatusFromStr(status)
+		agent.Status = status
 		log.Printf("Get Agent from db: %+v", agent)
 		agents = append(agents, agent)
 	}
@@ -65,7 +65,7 @@ func (connector *DBConnector) AddAgent(agent Agent) error {
 		"insert into agent(id, address, status) values (%d, '%s', '%s')",
 		agent.Id,
 		agent.Address,
-		agent.Status.String(),
+		agent.Status,
 	)
 	_, err := connector.db.Exec(sql)
 	if err != nil {

@@ -1,7 +1,6 @@
 package server
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"strconv"
@@ -128,12 +127,11 @@ func (app *App) Start() {
 
 // listAgents show each agent's status from database
 func (app *App) listAgents(c *gin.Context) {
-	agents := app.agentsMap.GetAll()
-	data, err := json.Marshal(agents)
+	data, err := app.agentsMap.ToJson()
 	if err != nil {
-		c.JSON(503, "Failed to get agents")
+		c.JSON(503, fmt.Sprintf("Failed to get agents: %s", err))
 	} else {
-		response := gin.H{"agent": string(data)}
+		response := gin.H{"agents": string(data)}
 		// TODO: render page with form
 		c.JSON(200, response)
 	}
@@ -155,15 +153,19 @@ func (app *App) refreshAgent(c *gin.Context) {
 	heartbeat, err := app.ctr.GetAgentHeartBeat(address)
 	if err != nil {
 		defer func() {
-			agent.Status = db.Unknown
 			app.agentsMap.Update(agent)
 		}()
 		c.JSON(503, fmt.Sprintf("Failed to get agent heartbeat with error: %v", err))
 		return
 	}
-	app.logger.Debug.Printf("%+v %v", *heartbeat, err)
 	app.handleHeartBeat(heartbeat)
-	c.JSON(200, "Success")
+	agentBytes, err := app.agentsMap.AgentToJson(id)
+	if err != nil {
+		c.JSON(503, fmt.Sprintf("Failed to get agent data with error: %v", err))
+	} else {
+		response := gin.H{"agent": string(agentBytes)}
+		c.JSON(200, response)
+	}
 }
 
 func (app *App) updateConfig(c *gin.Context) {
@@ -181,7 +183,7 @@ func (app *App) updateConfig(c *gin.Context) {
 	address := agent.Address
 	config := `
 pipeline:
-  worker: 4
+  worker: 5
   formatters:
     - forwarder:
 `
@@ -206,7 +208,7 @@ func (app *App) handleHeartBeat(heartbeat *agentpb.HeartBeat) {
 	agent := db.Agent{
 		Id:      heartbeat.Id,
 		Address: heartbeat.Address,
-		Status:  db.StatusFromStr(heartbeat.Status.String()),
+		Status:  heartbeat.Status.String(),
 		Config:  string(heartbeat.Config),
 	}
 	app.agentsMap.Update(agent)

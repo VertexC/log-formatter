@@ -81,6 +81,7 @@ func NewAgentsManager() (*AgentsManager, error) {
 }
 
 func (manager *AgentsManager) Run() {
+	manager.Status = agentpb.Status_Running
 	go manager.StartRpcService()
 	for _, agent := range manager.agents {
 		go agent.Run()
@@ -88,7 +89,7 @@ func (manager *AgentsManager) Run() {
 	// go manager.StartHearBeat()
 }
 
-func (manager *AgentsManager) ChangeConfig(content interface{}) error {
+func (manager *AgentsManager) SetConfig(content interface{}) error {
 	// TODO: stop all agents
 
 	contentMapStr, ok := content.(map[string]interface{})
@@ -183,14 +184,7 @@ func (manager *AgentsManager) StartHearBeat() {
 			defer conn.Close()
 			manager.logger.Info.Printf("Start to Send Heartbeat\n")
 			for {
-				// ignore error here, as we always get cfg from bytes
-				cfgBytes, _ := yaml.Marshal(manager.config.BaseConfig.Content)
-				heartbeat := &agentpb.HeartBeat{
-					Status:  manager.Status,
-					Id:      manager.config.Id,
-					Address: "localhost:" + manager.config.RpcPort,
-					Config:  cfgBytes,
-				}
+				heartbeat := manager.prepareHeartBeat()
 				c := ctrpb.NewControllerClient(conn)
 
 				// Contact the server and print out its response.
@@ -215,13 +209,20 @@ func (manager *AgentsManager) StartHearBeat() {
 
 func (manager *AgentsManager) GetHeartBeat(context context.Context, request *agentpb.HeartBeatRequest) (*agentpb.HeartBeat, error) {
 	manager.logger.Debug.Println("Got Heart Beat Get Request")
-	msg := &agentpb.HeartBeat{
-		Status: manager.Status,
-		Id:     manager.config.Id,
-		// FIXME: use ip
+	heartbeat := manager.prepareHeartBeat()
+	return heartbeat, nil
+}
+
+func (manager *AgentsManager) prepareHeartBeat() *agentpb.HeartBeat {
+	// ignore error here, as we always get cfg from bytes
+	cfgBytes, _ := yaml.Marshal(manager.config.BaseConfig.Content)
+	heartbeat := &agentpb.HeartBeat{
+		Status:  manager.Status,
+		Id:      manager.config.Id,
 		Address: "localhost:" + manager.config.RpcPort,
+		Config:  cfgBytes,
 	}
-	return msg, nil
+	return heartbeat
 }
 
 func (manager *AgentsManager) StartRpcService() {

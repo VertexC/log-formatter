@@ -84,7 +84,7 @@ func main() {
 		panic(err)
 	}
 
-	if err := manager.ChangeConfig(content); err != nil {
+	if err := manager.SetConfig(content); err != nil {
 		panic(err)
 	}
 	manager.Run()

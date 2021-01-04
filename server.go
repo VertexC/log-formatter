@@ -18,6 +18,7 @@ func init() {
 }
 
 func main() {
+	util.Verbose = true
 	flag.Parse()
 	// load config content
 	content, err := config.LoadMapStrFromYamlFile(options.configFile)

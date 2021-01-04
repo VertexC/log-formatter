@@ -1,14 +1,14 @@
 package db
 
 import (
+	"encoding/json"
 	"fmt"
-	"log"
 	"sync"
 )
 
 type Agent struct {
 	Id     uint64 `json:"id"`
-	Status Status `json:"status"`
+	Status string `json:"status"`
 	// rpc connection address of agent
 	Address string `json:"address"`
 	// config is a place holder of config
@@ -19,14 +19,6 @@ type AgentsSyncMap struct {
 	agents map[uint64]*Agent
 	lock   sync.RWMutex
 }
-
-type Status int
-
-const (
-	Running Status = iota
-	Stop
-	Unknown
-)
 
 func NewAgentsSyncMap() *AgentsSyncMap {
 	return &AgentsSyncMap{
@@ -62,20 +54,24 @@ func (agentsMap *AgentsSyncMap) GetAll() []Agent {
 	return agents
 }
 
-func StatusFromStr(status string) (result Status) {
-	switch status {
-	case "Stop":
-		result = Stop
-	case "Running":
-		result = Running
-	case "Unknow":
-		result = Unknown
-	default:
-		log.Fatalln("Invalid status: %s", status)
-	}
-	return
+func (agentsMap *AgentsSyncMap) ToJson() ([]byte, error) {
+	agentsMap.lock.RLock()
+	defer agentsMap.lock.RUnlock()
+	data, err := json.Marshal(agentsMap.agents)
+	return data, err
 }
 
-func (status Status) String() string {
-	return []string{"Stop", "Running"}[status]
+func (agentsMap *AgentsSyncMap) AgentToJson(id uint64) ([]byte, error) {
+	agentsMap.lock.RLock()
+	defer agentsMap.lock.RUnlock()
+	var (
+		err  error
+		data []byte
+	)
+	if agent, ok := agentsMap.agents[id]; ok {
+		data, err = json.Marshal(agent)
+	} else {
+		err = fmt.Errorf("Agent with Id %d not found", id)
+	}
+	return data, err
 }
