@@ -181,12 +181,18 @@ func (app *App) updateConfig(c *gin.Context) {
 		return
 	}
 	address := agent.Address
-	config := `
-pipeline:
-  worker: 5
-  formatters:
-    - forwarder:
-`
+
+	var param = struct {
+		CONFIG string `json:"config" binding:"required"`
+	}{}
+	err = c.BindJSON(&param)
+	if err != nil {
+		c.JSON(400, err)
+		return
+	}
+	config := param.CONFIG
+
+	app.logger.Trace.Printf("Try to update agent %d with config:\n%s\n", id, config)
 	_, err = app.ctr.UpdateConfig(address, []byte(config))
 	c.JSON(200, "Success")
 }

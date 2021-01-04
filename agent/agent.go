@@ -157,6 +157,7 @@ func (manager *AgentsManager) UpdateConfig(context context.Context, request *age
 			return failedRes, nil
 		}
 	}
+	manager.config.BaseConfig.Content[Pipeline] = configMapStr[Pipeline]
 	return &agentpb.UpdateConfigResponse{
 		Header: &agentpb.ResponseHeader{
 			Id: manager.config.Id,
