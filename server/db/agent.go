@@ -4,7 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"sync"
+	"time"
 )
+
+const HeartbeatInterval = 20
 
 type Agent struct {
 	Id     uint64 `json:"id"`
@@ -12,7 +15,8 @@ type Agent struct {
 	// rpc connection address of agent
 	Address string `json:"address"`
 	// config is a place holder of config
-	Config string `json:"config"`
+	Config        string `json:"config"`
+	HeartbeatTick int    `json:"alive"`
 }
 
 type AgentsSyncMap struct {
@@ -31,6 +35,7 @@ func (agentsMap *AgentsSyncMap) Update(agents ...Agent) {
 	defer agentsMap.lock.Unlock()
 	for _, agent := range agents {
 		agentsMap.agents[agent.Id] = &agent
+		agentsMap.agents[agent.Id].HeartbeatTick = 0
 	}
 }
 
@@ -74,4 +79,22 @@ func (agentsMap *AgentsSyncMap) AgentToJson(id uint64) ([]byte, error) {
 		err = fmt.Errorf("Agent with Id %d not found", id)
 	}
 	return data, err
+}
+
+func (agentsMap *AgentsSyncMap) Tick() {
+	for {
+		time.Sleep(1 * time.Second)
+		agentsMap.tick()
+	}
+}
+
+func (agentsMap *AgentsSyncMap) tick() {
+	agentsMap.lock.Lock()
+	defer agentsMap.lock.Unlock()
+	for _, agent := range agentsMap.agents {
+		agent.HeartbeatTick++
+		if agent.HeartbeatTick > HeartbeatInterval {
+			agent.Status = "Unknown"
+		}
+	}
 }

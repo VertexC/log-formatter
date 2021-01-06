@@ -115,6 +115,8 @@ func (app *App) Start() {
 			app.logger.Error.Fatalln(err)
 		}
 	}()
+	// start agents Tick
+	go app.agentsMap.Tick()
 	// start controller
 	go app.ctr.Run()
 	// process heartbaet
@@ -194,6 +196,10 @@ func (app *App) updateConfig(c *gin.Context) {
 
 	app.logger.Trace.Printf("Try to update agent %d with config:\n%s\n", id, config)
 	r, err := app.ctr.UpdateConfig(address, []byte(config))
+	if err != nil {
+		c.JSON(400, err)
+		return
+	}
 	app.handleHeartBeat(r.Heartbeat)
 	c.JSON(200, "Success")
 }
