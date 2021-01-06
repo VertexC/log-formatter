@@ -193,7 +193,8 @@ func (app *App) updateConfig(c *gin.Context) {
 	config := param.CONFIG
 
 	app.logger.Trace.Printf("Try to update agent %d with config:\n%s\n", id, config)
-	_, err = app.ctr.UpdateConfig(address, []byte(config))
+	r, err := app.ctr.UpdateConfig(address, []byte(config))
+	app.handleHeartBeat(r.Heartbeat)
 	c.JSON(200, "Success")
 }
 

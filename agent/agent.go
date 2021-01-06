@@ -165,6 +165,7 @@ func (manager *AgentsManager) UpdateConfig(context context.Context, request *age
 				Type: agentpb.ErrorType_OK,
 			},
 		},
+		Heartbeat: manager.prepareHeartBeat(),
 	}, nil
 }
 
