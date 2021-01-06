@@ -26,7 +26,6 @@ type Controller struct {
 func NewController(port string, heartbeatCh chan *agentpb.HeartBeat) *Controller {
 	logger := util.NewLogger("controller")
 
-	// FIXME: hardcode for now
 	return &Controller{
 		logger:      logger,
 		RpcPort:     port,

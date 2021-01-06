@@ -59,7 +59,9 @@ func (agent *PipelineAgent) SetConfig(content interface{}) error {
 		return err
 	}
 
-	util.YamlConvert(contentMapStr, &config)
+	if err := util.YamlConvert(contentMapStr, &config); err != nil {
+		return err
+	}
 
 	formatterCfgs, ok := contentMapStr["formatters"].([]interface{})
 	if !ok {
@@ -123,8 +125,10 @@ func (pipeline *Pipeline) run() {
 }
 
 func (w *worker) run(wg *sync.WaitGroup) {
-	defer wg.Done()
-
+	defer func() {
+		w.logger.Debug.Printf("worker end")
+		wg.Done()
+	}()
 	ch := make(chan map[string]interface{})
 	doFormat := func(doc map[string]interface{}) {
 		discard := false
@@ -143,13 +147,16 @@ func (w *worker) run(wg *sync.WaitGroup) {
 			w.conn.OutGate.Put(doc)
 		}
 	}
-	select {
-	case doc := <-w.conn.InGate.GetCh():
-		w.conn.InGate.ConsumedInc()
-		doFormat(doc)
-	case <-w.ctx.Done():
-		w.logger.Info.Printf("Try to close a pipeline worker.\n")
-		close(ch)
-		break
+	for {
+		select {
+		case doc := <-w.conn.InGate.GetCh():
+			w.logger.Debug.Printf("%+v\n", doc)
+			w.conn.InGate.ConsumedInc()
+			doFormat(doc)
+		case <-w.ctx.Done():
+			w.logger.Info.Printf("Try to close a pipeline worker.\n")
+			close(ch)
+			return
+		}
 	}
 }

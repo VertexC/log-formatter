@@ -108,7 +108,7 @@ func NewApp(content interface{}) (*App, error) {
 }
 
 func (app *App) Start() {
-	app.initAgentsFromDB()
+	// app.initAgentsFromDB()
 	go func() {
 		err := app.router.Run(":" + app.config.ServerPort)
 		if err != nil {

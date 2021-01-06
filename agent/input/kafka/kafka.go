@@ -109,7 +109,7 @@ func NewKafkaInput(content interface{}) (input.Input, error) {
 		saramaCfg.Version = version
 
 		// TODO: what this oldest parameter do?
-		oldest := true
+		oldest := false
 		if oldest {
 			saramaCfg.Consumer.Offsets.Initial = sarama.OffsetOldest
 		}
