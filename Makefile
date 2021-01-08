@@ -2,7 +2,13 @@ SHELL := /bin/bash
 
 .PHONY: clean
 clean:
-	echo "a test"
+	rm -r build
+
+## build-sever: 
+.PHONY: build-fe
+build-server:
+	$(MAKE) -C ./agents-monitor all
+	mkdir build && cp -r ./agents-monitor/dist build
 
 ## build: build main
 .PHONY: build 

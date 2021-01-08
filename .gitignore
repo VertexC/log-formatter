@@ -1,5 +1,5 @@
 logs
-main
+build
 local.modules
 *local.yml
 *coverage.txt

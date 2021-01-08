@@ -12,6 +12,7 @@ import (
 	"github.com/VertexC/log-formatter/util"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gin-contrib/static"
 	_ "github.com/go-sql-driver/mysql"
 )
 
@@ -85,6 +86,7 @@ func NewApp(content interface{}) (*App, error) {
 	}
 
 	router := gin.Default()
+	router.Use(static.Serve("/", static.LocalFile("./build/dist", true)))
 	router.Use(CORSMiddleware())
 
 	heartbeatCh := make(chan *agentpb.HeartBeat, 1000)
