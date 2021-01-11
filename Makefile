@@ -2,18 +2,15 @@ SHELL := /bin/bash
 
 .PHONY: clean
 clean:
-	rm -r build
+	@-rm agent-app
+	@-rm monitor-app
 
 ## build-sever: 
-.PHONY: build-fe
-build-server:
+.PHONY: build-web
+build-web:
+	@rm -r build
 	$(MAKE) -C ./agents-monitor all
 	mkdir build && cp -r ./agents-monitor/dist build
-
-## build: build main
-.PHONY: build 
-build:
-	go build main.go
 
 .PHONY: build-linux
 build-linux:
