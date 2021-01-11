@@ -1,0 +1,6 @@
+FROM centos:7
+RUN mkdir /app 
+WORKDIR /app/
+
+COPY build /app/build/
+COPY monitor-app /app/monitor-app
