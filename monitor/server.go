@@ -14,7 +14,7 @@ import (
 )
 
 type AppConfig struct {
-	ServerPort string `yaml: "serverport"`
+	WebPort string `yaml: "webport"`
 	RpcPort    string `yaml: "rpcport"`
 }
 
@@ -51,7 +51,7 @@ func CORSMiddleware() gin.HandlerFunc {
 }
 
 // NewApp
-func NewApp(rpcPort string) (*App, error) {
+func NewApp(rpcPort string, webPort string) (*App, error) {
 	logger := util.NewLogger("monitor-web-server")
 
 	router := gin.Default()
@@ -64,7 +64,7 @@ func NewApp(rpcPort string) (*App, error) {
 	app := &App{
 		router:      router,
 		config:      &AppConfig {
-			ServerPort: "8080",
+			WebPort: webPort,
 			RpcPort: rpcPort,
 		},
 		ctr:         ctr,
@@ -82,7 +82,7 @@ func NewApp(rpcPort string) (*App, error) {
 
 func (app *App) Start() {
 	go func() {
-		err := app.router.Run(":" + app.config.ServerPort)
+		err := app.router.Run(":" + app.config.WebPort)
 		if err != nil {
 			app.logger.Error.Fatalln(err)
 		}

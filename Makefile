@@ -8,16 +8,16 @@ clean:
 ## build-sever: 
 .PHONY: build-fe
 build-fe:
-	@rm -r build
-	$(MAKE) -C ./agents-monitor all
-	mkdir build && cp -r ./agents-monitor/dist build
+	@-rm -r build
+	$(MAKE) -C ./monitor-fe all
+	mkdir build && cp -r ./monitor-fe/dist build
 
 .PHONY: build-agent
 build-agent:
 	GOOS=linux go build -o agent-app agent.go
 
 .PHONY: build-monitor
-build-monitor:
+build-monitor: | build-fe
 	GOOS=linux go build -o monitor-app monitor.go
 
 ## go-test: go unit test
@@ -55,8 +55,8 @@ docker-push-agent: | build-agent
 	docker tag agent formatter/agent:$(docker_version)
 	docker push formatter/agent
 
-.PHONY: docker-push-agent
-docker-push-agent: | build-monitor build-fe
+.PHONY: docker-push-monitor
+docker-push-monitor: | build-monitor
 	docker build --tag monitor -f Dockerfile.monitor .
 	docker tag monitor formatter/monitor:$(docker_version)
 	docker push formatter/monitor

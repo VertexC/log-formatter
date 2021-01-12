@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	LogFile string = "logs/runtime.log"
+	LogFile string = "runtime.log"
 	Verbose bool   = false
 )
 
