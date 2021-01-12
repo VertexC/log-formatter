@@ -6,3 +6,4 @@ local.modules
 .vscode
 backup
 tmp
+runtime.log
