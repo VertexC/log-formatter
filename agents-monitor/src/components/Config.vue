@@ -22,7 +22,6 @@ export default {
       return {
           agentId: this.id,
           agentConfig: this.config,
-          server: "http://localhost:8080"
       }
   },
   methods: {
@@ -33,7 +32,7 @@ export default {
       console.log("Try to update config")
       return axios({
         method: 'put',
-        url: this.server + '/config',
+        url: this.$root.$serverUrl + '/config',
         params: {
           id: id
         },

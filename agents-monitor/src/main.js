@@ -40,4 +40,14 @@ VueRouter.prototype.push = function push(location) {
 new Vue({
     router: router,
     render: h=> h(App),
+    serverUrl: "",
+    created: function() {
+        console.log(process.env)
+        if ("VUE_APP_SEVER_URL" in process.env) {
+            this.$serverUrl = process.env.VUE_APP_SEVER_URL
+        } else {
+            this.$serverUrl = origin
+        }
+        console.log("server url:" + this.$serverUrl)
+    }
 }).$mount('#app')

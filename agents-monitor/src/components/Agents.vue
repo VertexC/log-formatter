@@ -54,7 +54,6 @@ export default {
           config: null,
           curId: null,
           agents: {},
-          server: 'http://localhost:8080',
       }
   },
   computed: {
@@ -88,7 +87,7 @@ export default {
       console.log("Try to refresh Agent status:" + id.toString())
       return axios({
         method: 'get',
-        url: this.server + '/agent',
+        url: this.$root.$serverUrl + '/agent',
         params: {
           id: id
         }
@@ -108,7 +107,7 @@ export default {
       console.log("refresh")
       return axios({
         method: 'get',
-        url: this.server + '/app',
+        url: this.$root.$serverUrl + '/app',
       }).then(response => {
         console.log(response)
         this.clearAgents()
