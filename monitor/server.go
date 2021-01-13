@@ -2,6 +2,7 @@ package monitor
 
 import (
 	"fmt"
+	"hash/fnv"
 	"strconv"
 
 	ctr "github.com/VertexC/log-formatter/controller"
@@ -125,9 +126,6 @@ func (app *App) refreshAgent(c *gin.Context) {
 	address := agent.Address
 	heartbeat, err := app.ctr.GetAgentHeartBeat(address)
 	if err != nil {
-		defer func() {
-			app.agentsMap.Update(agent)
-		}()
 		c.JSON(503, fmt.Sprintf("Failed to get agent heartbeat with error: %v", err))
 		return
 	}
@@ -184,10 +182,16 @@ func (app *App) updateConfig(c *gin.Context) {
 func (app *App) handleHeartBeat(hb *ctr.HeartBeat) {
 	app.logger.Info.Printf("handleHeartbeat: %+v\n config: %v\n", *hb, string(hb.HeartBeat.Config))
 	agent := Agent{
-		Id:      hb.HeartBeat.Id,
+		Id:      hash(hb.Addr),
 		Address: hb.Addr,
 		Status:  hb.HeartBeat.Status.String(),
 		Config:  string(hb.HeartBeat.Config),
 	}
 	app.agentsMap.Update(agent)
+}
+
+func hash(s string) uint64 {
+	h := fnv.New64a()
+	h.Write([]byte(s))
+	return h.Sum64()
 }
