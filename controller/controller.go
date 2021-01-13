@@ -9,33 +9,44 @@ import (
 	agentpb "github.com/VertexC/log-formatter/proto/pkg/agent"
 	ctrpb "github.com/VertexC/log-formatter/proto/pkg/controller"
 	"github.com/VertexC/log-formatter/util"
+	"google.golang.org/grpc/peer"
 
 	"google.golang.org/grpc"
 )
+
+type HeartBeat struct {
+	HeartBeat *agentpb.HeartBeat
+	Addr      string
+}
 
 // TODO: consume heartbeat with message queue
 type Controller struct {
 	ctrpb.UnimplementedControllerServer
 	// agent address
-	agent       string
-	RpcPort     string
-	logger      *util.Logger
-	heartbeatCh chan *agentpb.HeartBeat
+	agent   string
+	RpcPort string
+	logger  *util.Logger
+	hbCh    chan *HeartBeat
 }
 
-func NewController(port string, heartbeatCh chan *agentpb.HeartBeat) *Controller {
+func NewController(port string, hbCh chan *HeartBeat) *Controller {
 	logger := util.NewLogger("controller")
 
 	return &Controller{
-		logger:      logger,
-		RpcPort:     port,
-		heartbeatCh: heartbeatCh,
+		logger:  logger,
+		RpcPort: port,
+		hbCh:    hbCh,
 	}
 }
 
-func (ctr *Controller) UpdateAgentStatusRequest(c context.Context, heartbeat *agentpb.HeartBeat) (*ctrpb.ControllerRequestDone, error) {
+func (ctr *Controller) UpdateAgentStatusRequest(ctx context.Context, heartbeat *agentpb.HeartBeat) (*ctrpb.ControllerRequestDone, error) {
 	ctr.logger.Info.Printf("Get UpdateAgentStatusRequest with hearbeat: %+v\n", heartbeat)
-	ctr.heartbeatCh <- heartbeat
+	p, _ := peer.FromContext(ctx)
+	ctr.logger.Info.Printf("Receive Heartbeat from %s, %s", p.Addr.String(), p.Addr.Network())
+	ctr.hbCh <- &HeartBeat{
+		HeartBeat: heartbeat,
+		Addr:      getAddr(p.Addr, heartbeat.RpcPort),
+	}
 	res := &ctrpb.ControllerRequestDone{}
 	return res, nil
 }
@@ -74,7 +85,6 @@ func (ctr *Controller) UpdateConfig(rpcAddr string, configBytes []byte) (*agentp
 }
 
 func (ctr *Controller) GetAgentHeartBeat(rpcAddr string) (*agentpb.HeartBeat, error) {
-	// FIXME: harcoded agent rpc address for now
 	// set out of time logic
 	conn, err := grpc.Dial(rpcAddr, grpc.WithInsecure(), grpc.WithBlock(), grpc.WithTimeout(time.Duration(1)*time.Second))
 
@@ -125,4 +135,14 @@ func (ctr *Controller) startRpcService() {
 			ctr.logger.Error.Fatalf("Failed to serve: %s\n", err)
 		}
 	}()
+}
+
+// TODO: not sure if net.Addr.String() == ip:port
+func getAddr(addr net.Addr, port string) string {
+	reg := `^(?P<ip>.*?)\:(?P<port>[0-9]+)$`
+	mapStr, err := util.SubMatchMapRegex(reg, addr.String())
+	if err != nil {
+		panic(err)
+	}
+	return mapStr["ip"] + ":" + port
 }

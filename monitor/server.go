@@ -5,17 +5,16 @@ import (
 	"strconv"
 
 	ctr "github.com/VertexC/log-formatter/controller"
-	agentpb "github.com/VertexC/log-formatter/proto/pkg/agent"
 	"github.com/VertexC/log-formatter/util"
 
-	"github.com/gin-gonic/gin"
 	"github.com/gin-contrib/static"
+	"github.com/gin-gonic/gin"
 	_ "github.com/go-sql-driver/mysql"
 )
 
 type AppConfig struct {
 	WebPort string `yaml: "webport"`
-	RpcPort    string `yaml: "rpcport"`
+	RpcPort string `yaml: "rpcport"`
 }
 
 // App instance at Run time
@@ -25,12 +24,12 @@ type AppConfig struct {
 // 2) delete a agent instance
 // 3) a heartbeat comes from a new agent
 type App struct {
-	router      *gin.Engine
-	config      *AppConfig
-	agentsMap   *AgentsSyncMap
-	ctr         *ctr.Controller
-	heartbeatCh chan *agentpb.HeartBeat
-	logger      *util.Logger
+	router    *gin.Engine
+	config    *AppConfig
+	agentsMap *AgentsSyncMap
+	ctr       *ctr.Controller
+	hbCh      chan *ctr.HeartBeat
+	logger    *util.Logger
 }
 
 func CORSMiddleware() gin.HandlerFunc {
@@ -58,18 +57,18 @@ func NewApp(rpcPort string, webPort string) (*App, error) {
 	router.Use(static.Serve("/", static.LocalFile("./build/dist", true)))
 	router.Use(CORSMiddleware())
 
-	heartbeatCh := make(chan *agentpb.HeartBeat, 1000)
-	ctr := ctr.NewController(rpcPort, heartbeatCh)
+	hbCh := make(chan *ctr.HeartBeat, 1000)
+	controller := ctr.NewController(rpcPort, hbCh)
 
 	app := &App{
-		router:      router,
-		config:      &AppConfig {
+		router: router,
+		config: &AppConfig{
 			WebPort: webPort,
 			RpcPort: rpcPort,
 		},
-		ctr:         ctr,
-		logger:      logger,
-		heartbeatCh: heartbeatCh,
+		ctr:    controller,
+		logger: logger,
+		hbCh:   hbCh,
 	}
 	app.agentsMap = NewAgentsSyncMap()
 	// register end points
@@ -93,8 +92,8 @@ func (app *App) Start() {
 	go app.ctr.Run()
 	// process heartbaet
 	go func() {
-		for heartbeat := range app.heartbeatCh {
-			app.handleHeartBeat(heartbeat)
+		for hb := range app.hbCh {
+			app.handleHeartBeat(hb)
 		}
 	}()
 }
@@ -132,7 +131,10 @@ func (app *App) refreshAgent(c *gin.Context) {
 		c.JSON(503, fmt.Sprintf("Failed to get agent heartbeat with error: %v", err))
 		return
 	}
-	app.handleHeartBeat(heartbeat)
+	app.handleHeartBeat(&ctr.HeartBeat{
+		HeartBeat: heartbeat,
+		Addr:      address,
+	})
 	agentBytes, err := app.agentsMap.AgentToJson(id)
 	if err != nil {
 		c.JSON(503, fmt.Sprintf("Failed to get agent data with error: %v", err))
@@ -172,17 +174,20 @@ func (app *App) updateConfig(c *gin.Context) {
 		c.JSON(400, err)
 		return
 	}
-	app.handleHeartBeat(r.Heartbeat)
+	app.handleHeartBeat(&ctr.HeartBeat{
+		HeartBeat: r.Heartbeat,
+		Addr:      address,
+	})
 	c.JSON(200, "Success")
 }
 
-func (app *App) handleHeartBeat(heartbeat *agentpb.HeartBeat) {
-	app.logger.Info.Printf("handleHeartbeat: %+v\n config: %v\n", *heartbeat, string(heartbeat.Config))
+func (app *App) handleHeartBeat(hb *ctr.HeartBeat) {
+	app.logger.Info.Printf("handleHeartbeat: %+v\n config: %v\n", *hb, string(hb.HeartBeat.Config))
 	agent := Agent{
-		Id:      heartbeat.Id,
-		Address: heartbeat.Address,
-		Status:  heartbeat.Status.String(),
-		Config:  string(heartbeat.Config),
+		Id:      hb.HeartBeat.Id,
+		Address: hb.Addr,
+		Status:  hb.HeartBeat.Status.String(),
+		Config:  string(hb.HeartBeat.Config),
 	}
 	app.agentsMap.Update(agent)
 }

@@ -26,6 +26,8 @@ type AgentsManagerConfig struct {
 	Controller string `yaml: "controller"`
 	// rpc port
 	RpcPort string `yaml: "rpcport"`
+	// heartbeat internal
+	HeartbeatInterval string `yml: "heartbeatInterval`
 }
 
 type AgentsManager struct {
@@ -162,16 +164,17 @@ func (manager *AgentsManager) StartHearBeat() {
 		conn *grpc.ClientConn
 		err  error
 	)
-
 	for {
 		conn, err = grpc.Dial(manager.config.Controller, grpc.WithInsecure(), grpc.WithBlock())
 
 		if err != nil {
 			manager.logger.Error.Printf("Can not connect: %v", err)
 		} else {
+
 			defer conn.Close()
 			manager.logger.Info.Printf("Start to Send Heartbeat\n")
 			for {
+				// FIXME: check if conn is valid
 				heartbeat := manager.prepareHeartBeat()
 				c := ctrpb.NewControllerClient(conn)
 
@@ -207,7 +210,7 @@ func (manager *AgentsManager) prepareHeartBeat() *agentpb.HeartBeat {
 	heartbeat := &agentpb.HeartBeat{
 		Status:  manager.Status,
 		Id:      manager.config.Id,
-		Address: "localhost:" + manager.config.RpcPort,
+		RpcPort: manager.config.RpcPort,
 		Config:  cfgBytes,
 	}
 	return heartbeat

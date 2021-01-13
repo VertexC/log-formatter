@@ -8,11 +8,11 @@ import (
 )
 
 var options = &struct {
-	rpcport string
-	webport string
-	configFile string
+	rpcport     string
+	webport     string
+	configFile  string
 	verboseFlag bool
-	logDir string
+	logDir      string
 }{}
 
 func init() {
