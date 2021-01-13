@@ -18,6 +18,7 @@ import (
 // Options contains the top level options of log-formatter
 var options = &struct {
 	configFile  string
+	monitorAddr string
 	logDir      string
 	verboseFlag bool
 	cpuProfile  bool
@@ -31,6 +32,7 @@ type Config struct {
 
 func init() {
 	flag.StringVar(&options.configFile, "c", "config.yml", "config file path")
+	flag.StringVar(&options.monitorAddr, "monitor", "", "monitor rpc server address")
 	flag.StringVar(&options.logDir, "l", "logs", "log directory")
 	flag.BoolVar(&options.verboseFlag, "v", false, "add TRACE/WARNING logging if enabled")
 	flag.BoolVar(&options.cpuProfile, "cpuprof", false, "enable cpu profile")
@@ -79,7 +81,7 @@ func main() {
 	configPretty, _ := json.MarshalIndent(content, "", "  ")
 	logger.Info.Printf("Get config\n %s\n", configPretty)
 
-	manager, err := agent.NewAgentsManager()
+	manager, err := agent.NewAgentsManager(options.monitorAddr)
 	if err != nil {
 		panic(err)
 	}

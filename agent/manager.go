@@ -22,8 +22,6 @@ import (
 type AgentsManagerConfig struct {
 	BaseConfig config.ConfigBase
 	Id         uint64 `yaml: "id"`
-	// address of controller
-	Controller string `yaml: "controller"`
 	// rpc port
 	RpcPort string `yaml: "rpcport"`
 	// heartbeat internal
@@ -36,9 +34,11 @@ type AgentsManager struct {
 	Status agentpb.Status
 	agents map[string]Agent
 	logger *util.Logger
+	// monitor rpc address
+	monitorAddr string
 }
 
-func NewAgentsManager() (*AgentsManager, error) {
+func NewAgentsManager(monitorAddr string) (*AgentsManager, error) {
 	logger := util.NewLogger("AgentsManager")
 
 	conn, err := connector.NewConnector()
@@ -49,8 +49,9 @@ func NewAgentsManager() (*AgentsManager, error) {
 	}
 
 	manager := &AgentsManager{
-		logger: logger,
-		Status: agentpb.Status_Stop,
+		logger:      logger,
+		Status:      agentpb.Status_Stop,
+		monitorAddr: monitorAddr,
 		config: &AgentsManagerConfig{
 			BaseConfig: config.ConfigBase{
 				MandantoryFields: []string{Input, Output, Pipeline, "id", "controller", "rpcport"},
@@ -72,10 +73,10 @@ func NewAgentsManager() (*AgentsManager, error) {
 
 func (manager *AgentsManager) Run() {
 	manager.Status = agentpb.Status_Running
-	go manager.StartRpcService()
 	for _, agent := range manager.agents {
 		go agent.Run()
 	}
+	go manager.StartRpcService()
 	go manager.StartHearBeat()
 }
 
@@ -158,14 +159,16 @@ func (manager *AgentsManager) UpdateConfig(context context.Context, request *age
 }
 
 func (manager *AgentsManager) StartHearBeat() {
-	// TODO: make sleep time internal configurable
 	// Set up a connection to the server.
+	if manager.monitorAddr == "" {
+		return
+	}
 	var (
 		conn *grpc.ClientConn
 		err  error
 	)
 	for {
-		conn, err = grpc.Dial(manager.config.Controller, grpc.WithInsecure(), grpc.WithBlock())
+		conn, err = grpc.Dial(manager.monitorAddr, grpc.WithInsecure(), grpc.WithBlock())
 
 		if err != nil {
 			manager.logger.Error.Printf("Can not connect: %v", err)
@@ -174,7 +177,6 @@ func (manager *AgentsManager) StartHearBeat() {
 			defer conn.Close()
 			manager.logger.Info.Printf("Start to Send Heartbeat\n")
 			for {
-				// FIXME: check if conn is valid
 				heartbeat := manager.prepareHeartBeat()
 				c := ctrpb.NewControllerClient(conn)
 
