@@ -19,7 +19,6 @@ type HeartBeat struct {
 	Addr      string
 }
 
-// TODO: consume heartbeat with message queue
 type Controller struct {
 	ctrpb.UnimplementedControllerServer
 	// agent address

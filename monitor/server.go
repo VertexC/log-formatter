@@ -106,7 +106,6 @@ func (app *App) listAgents(c *gin.Context) {
 		c.JSON(503, fmt.Sprintf("Failed to get agents: %s", err))
 	} else {
 		response := gin.H{"agents": string(data)}
-		// TODO: render page with form
 		c.JSON(200, response)
 	}
 }

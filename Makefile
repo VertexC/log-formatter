@@ -2,7 +2,7 @@ SHELL := /bin/bash
 
 .PHONY: clean
 clean:
-	@-rm agents
+	@-rm agent-app
 	@-rm monitor-app
 
 ## build-sever: 
