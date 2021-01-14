@@ -1,0 +1,19 @@
+version: "3"
+services:
+  agent:
+    deploy:
+      replicas: 10 
+    image: 'formatter/agent:latest'
+    volumes:
+       - /Users/bchen/bowenc/goProj/src/github.com/VertexC/log-formatter/tmp/test-console-2.yml:/app/config.yml
+    environment:
+      - RPC_PORT=2020
+      - CONFIG_FILE=config.yml
+      - MONITOR=monitor:8081
+  monitor:
+    image: 'formatter/monitor:latest'
+    ports:
+      - '8080:8080'
+    environment:
+      - RPC_PORT=8081
+      - WEB_PORT=8080

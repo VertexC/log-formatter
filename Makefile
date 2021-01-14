@@ -60,3 +60,8 @@ docker-push-monitor: | build-monitor
 	docker build --tag monitor -f Dockerfile.monitor .
 	docker tag monitor formatter/monitor:$(docker_version)
 	docker push formatter/monitor
+
+.PHONY: docker-push-all
+docker-push-all: 
+	$(MAKE) docker-push-agent
+	$(MAKE) docker-push-monitor
