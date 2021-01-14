@@ -114,6 +114,7 @@ export default {
         var agents = JSON.parse(response['data']['agents'])
         this.agents = agents
       }).catch((error) => {
+        console.log(error)
         alert(error)
       })
     },

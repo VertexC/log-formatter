@@ -111,8 +111,9 @@ func (app *App) listAgents(c *gin.Context) {
 }
 
 func (app *App) refreshAgent(c *gin.Context) {
-	data, err := strconv.Atoi(c.Query("id"))
+	data, err := strconv.ParseUint(c.Query("id"), 10, 64)
 	if err != nil {
+		app.logger.Error.Printf("Failed to get Id: %s", err)
 		c.JSON(400, fmt.Sprintf("Invalid id %d", c.Query("id")))
 		return
 	}

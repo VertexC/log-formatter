@@ -1,6 +1,8 @@
 FROM centos:7
 RUN mkdir /app 
 WORKDIR /app/
-
+ENV RPC_PORT="8080"
+ENV WEB_PORT="8081"
 COPY build /app/build/
 COPY monitor-app /app/monitor-app
+ENTRYPOINT ./monitor-app -rpcp=$RPC_PORT -webp=$WEB_PORT
