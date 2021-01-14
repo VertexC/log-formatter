@@ -1,5 +1,7 @@
 FROM centos:7
 RUN mkdir /app 
 WORKDIR /app/
-
+ENV MONITOR=""
+ENV CONFIG_FILE=""
 COPY agent-app /app/agent-app
+ENTRYPOINT ./agent-app "-c=${CONFIG_FILE}" "-monitor=${MONITOR}"

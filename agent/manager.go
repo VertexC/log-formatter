@@ -24,8 +24,6 @@ type AgentsManagerConfig struct {
 	Id         uint64 `yaml: "id"`
 	// rpc port
 	RpcPort string `yaml: "rpcport"`
-	// heartbeat internal
-	HeartbeatInterval string `yml: "heartbeatInterval`
 }
 
 type AgentsManager struct {
@@ -161,8 +159,10 @@ func (manager *AgentsManager) UpdateConfig(context context.Context, request *age
 func (manager *AgentsManager) StartHearBeat() {
 	// Set up a connection to the server.
 	if manager.monitorAddr == "" {
+		manager.logger.Info.Printf("Start agent without heartbeat.\n")
 		return
 	}
+	manager.logger.Info.Printf("Start agent with hearbeat to %s\n", manager.monitorAddr)
 	var (
 		conn *grpc.ClientConn
 		err  error

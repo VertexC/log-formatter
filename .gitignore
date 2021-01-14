@@ -7,3 +7,4 @@ local.modules
 backup
 tmp
 runtime.log
+*-app

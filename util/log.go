@@ -57,6 +57,7 @@ func NewLogger(prefix string) (logger *Logger) {
 	if !Verbose {
 		logger.Warning.SetOutput(ioutil.Discard)
 		logger.Trace.SetOutput(ioutil.Discard)
+		logger.Debug.SetOutput(ioutil.Discard)
 	}
 	return
 }
