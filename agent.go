@@ -19,6 +19,7 @@ import (
 var options = &struct {
 	configFile  string
 	monitorAddr string
+	rpcPort     string
 	logDir      string
 	verboseFlag bool
 	cpuProfile  bool
@@ -33,6 +34,7 @@ type Config struct {
 func init() {
 	flag.StringVar(&options.configFile, "c", "config.yml", "config file path")
 	flag.StringVar(&options.monitorAddr, "monitor", "", "monitor rpc server address")
+	flag.StringVar(&options.rpcPort, "rpcp", "2020", "agent's rpc port")
 	flag.StringVar(&options.logDir, "l", "logs", "log directory")
 	flag.BoolVar(&options.verboseFlag, "v", false, "add TRACE/WARNING logging if enabled")
 	flag.BoolVar(&options.cpuProfile, "cpuprof", false, "enable cpu profile")
@@ -81,7 +83,7 @@ func main() {
 	configPretty, _ := json.MarshalIndent(content, "", "  ")
 	logger.Info.Printf("Get config\n %s\n", configPretty)
 
-	manager, err := agent.NewAgentsManager(options.monitorAddr)
+	manager, err := agent.NewAgentsManager(options.monitorAddr, options.rpcPort)
 	if err != nil {
 		panic(err)
 	}

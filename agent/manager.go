@@ -21,9 +21,6 @@ import (
 
 type AgentsManagerConfig struct {
 	BaseConfig config.ConfigBase
-	Id         uint64 `yaml: "id"`
-	// rpc port
-	RpcPort string `yaml: "rpcport"`
 }
 
 type AgentsManager struct {
@@ -34,9 +31,10 @@ type AgentsManager struct {
 	logger *util.Logger
 	// monitor rpc address
 	monitorAddr string
+	rpcPort     string
 }
 
-func NewAgentsManager(monitorAddr string) (*AgentsManager, error) {
+func NewAgentsManager(monitorAddr string, rpcPort string) (*AgentsManager, error) {
 	logger := util.NewLogger("AgentsManager")
 
 	conn, err := connector.NewConnector()
@@ -50,9 +48,10 @@ func NewAgentsManager(monitorAddr string) (*AgentsManager, error) {
 		logger:      logger,
 		Status:      agentpb.Status_Stop,
 		monitorAddr: monitorAddr,
+		rpcPort:     rpcPort,
 		config: &AgentsManagerConfig{
 			BaseConfig: config.ConfigBase{
-				MandantoryFields: []string{Input, Output, Pipeline, "id", "controller", "rpcport"},
+				MandantoryFields: []string{Input, Output, Pipeline},
 			},
 		},
 		agents: map[string]Agent{
@@ -118,7 +117,6 @@ func (manager *AgentsManager) UpdateConfig(context context.Context, request *age
 
 	failedRes := &agentpb.UpdateConfigResponse{
 		Header: &agentpb.ResponseHeader{
-			Id: manager.config.Id,
 			Error: &agentpb.Error{
 				Type: agentpb.ErrorType_FAILED,
 			},
@@ -147,7 +145,6 @@ func (manager *AgentsManager) UpdateConfig(context context.Context, request *age
 	manager.config.BaseConfig.Content[Pipeline] = configMapStr[Pipeline]
 	return &agentpb.UpdateConfigResponse{
 		Header: &agentpb.ResponseHeader{
-			Id: manager.config.Id,
 			Error: &agentpb.Error{
 				Type: agentpb.ErrorType_OK,
 			},
@@ -211,15 +208,14 @@ func (manager *AgentsManager) prepareHeartBeat() *agentpb.HeartBeat {
 	cfgBytes, _ := yaml.Marshal(manager.config.BaseConfig.Content)
 	heartbeat := &agentpb.HeartBeat{
 		Status:  manager.Status,
-		Id:      manager.config.Id,
-		RpcPort: manager.config.RpcPort,
+		RpcPort: manager.rpcPort,
 		Config:  cfgBytes,
 	}
 	return heartbeat
 }
 
 func (manager *AgentsManager) StartRpcService() {
-	port := manager.config.RpcPort
+	port := manager.rpcPort
 	list, err := net.Listen("tcp", ":"+port)
 
 	if err != nil {
