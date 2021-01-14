@@ -14,7 +14,7 @@
         </thead>
         <tbody>
           <tr v-for="(agent,id) in agents" :key='id'>
-            <td>{{ agent.id }}</td>
+            <td>{{ agent.id.toString().substring(0,8) }}</td>
             <td v-if="agent.status == 'Unknown'">{{ agent.status }}(last alive {{ agent.alive }}s)</td>
             <td v-else>{{ agent.status }}</td>
             <td>{{ agent.address }}</td>
@@ -169,6 +169,7 @@ table tbody {
     /* body takes all the remaining available space */
     flex: 1 1 auto;
     display: block;
+    max-height: 400px;
     overflow-y: scroll;
 }
 
