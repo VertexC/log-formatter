@@ -1,0 +1,54 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: agent-config
+data:
+  agent.conf: |
+    input:
+      console:
+    output:
+      console:
+    pipeline:
+      formatters:
+        - forwarder:
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: agent-deployment
+  labels:
+    app: agent
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app: agent
+  template:
+    metadata:
+      labels:
+        app: agent
+    spec:
+      containers:
+      - name: agent
+        image: formatter/agent
+        env:
+        - name: CONFIG_FILE
+          value: agent.conf
+        - name: RPC_PORT
+          value: "3030"
+        - name: MONITOR
+          value: monitor-service:3030
+        ports:
+        - containerPort: 3030
+          name: rpc
+        volumeMounts:
+        - name: agent-config
+          mountPath: /app/agent.conf
+          subPath: agent.conf
+      volumes:
+        - name: agent-config
+          configMap:
+            name: agent-config
+            items:
+              - key: agent.conf
+                path: agent.conf
