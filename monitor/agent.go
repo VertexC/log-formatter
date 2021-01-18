@@ -5,9 +5,12 @@ import (
 	"fmt"
 	"sync"
 	"time"
+
+	"github.com/VertexC/log-formatter/util"
 )
 
 const HeartbeatInterval = 20
+const StaleInterval = 3 * HeartbeatInterval
 
 type Agent struct {
 	Id     uint64 `json:"id"`
@@ -22,11 +25,13 @@ type Agent struct {
 type AgentsSyncMap struct {
 	agents map[uint64]*Agent
 	lock   sync.RWMutex
+	logger *util.Logger
 }
 
-func NewAgentsSyncMap() *AgentsSyncMap {
+func NewAgentsSyncMap(logger *util.Logger) *AgentsSyncMap {
 	return &AgentsSyncMap{
 		agents: make(map[uint64]*Agent),
+		logger: logger,
 	}
 }
 
@@ -96,5 +101,27 @@ func (agentsMap *AgentsSyncMap) tick() {
 		if agent.HeartbeatTick > HeartbeatInterval {
 			agent.Status = "Unknown"
 		}
+	}
+}
+
+func (agentsMap *AgentsSyncMap) gcWorker() {
+	for {
+		agentsMap.lock.Lock()
+		staleAgents := []uint64{}
+		for _, agent := range agentsMap.agents {
+			if agent.HeartbeatTick > StaleInterval {
+				staleAgents = append(staleAgents, agent.Id)
+			}
+		}
+		agentsMap.remove(staleAgents...)
+		agentsMap.lock.Unlock()
+		time.Sleep(10 * time.Second)
+	}
+}
+
+func (agentsMap *AgentsSyncMap) remove(ids ...uint64) {
+	for _, id := range ids {
+		agentsMap.logger.Info.Printf("Remove stale agent %d", id)
+		delete(agentsMap.agents, id)
 	}
 }

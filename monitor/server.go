@@ -71,7 +71,7 @@ func NewApp(rpcPort string, webPort string) (*App, error) {
 		logger: logger,
 		hbCh:   hbCh,
 	}
-	app.agentsMap = NewAgentsSyncMap()
+	app.agentsMap = NewAgentsSyncMap(logger)
 	// register end points
 	router.GET("/app", app.listAgents)
 	router.GET("/agent", app.refreshAgent)
@@ -97,6 +97,8 @@ func (app *App) Start() {
 			app.handleHeartBeat(hb)
 		}
 	}()
+	// clean stale agents
+	go app.agentsMap.gcWorker()
 }
 
 // listAgents show each agent's status from database
