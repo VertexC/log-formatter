@@ -8,24 +8,24 @@ import (
 )
 
 var options = &struct {
-	rpcport     string
-	webport     string
-	configFile  string
-	verboseFlag bool
-	logDir      string
+	rpcport    string
+	webport    string
+	configFile string
+	verbose    int
+	logDir     string
 }{}
 
 func init() {
 	flag.StringVar(&options.rpcport, "rpcp", "8081", "port to run rpc service")
 	flag.StringVar(&options.webport, "webp", "8080", "port to run web server")
 	flag.StringVar(&options.logDir, "l", "logs", "log directory")
-	flag.BoolVar(&options.verboseFlag, "v", false, "add TRACE/WARNING logging if enabled")
+	flag.IntVar(&options.verbose, "v", 0, util.VerboseDescription)
 }
 
 func main() {
 	flag.Parse()
 
-	util.Verbose = options.verboseFlag
+	util.Verbose = options.verbose
 	logger := util.NewLogger("monitor")
 	app, err := monitor.NewApp(options.rpcport, options.webport)
 	if err != nil {

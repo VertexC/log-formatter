@@ -2,7 +2,7 @@ version: "3"
 services:
   agent:
     deploy:
-      replicas: 30
+      replicas: 10
     image: 'formatter/agent:latest'
     volumes:
        - /Users/bchen/bowenc/goProj/src/github.com/VertexC/log-formatter/tmp/test-console-2.yml:/app/config.yml

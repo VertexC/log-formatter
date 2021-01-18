@@ -9,8 +9,15 @@ import (
 )
 
 var (
-	LogFile string = "runtime.log"
-	Verbose bool   = false
+	// LogFile is the file path of generated logs
+	LogFile            string = "runtime.log"
+	VerboseDescription string = `
+	// Verbose control level of log verbosity
+	// 0) Only Info, Error
+	// 1) Add Debug, Warning
+	// 2) Add Trace
+`
+	Verbose int = 0
 )
 
 type Logger struct {
@@ -54,10 +61,12 @@ func NewLogger(prefix string) (logger *Logger) {
 		fmt.Sprintf("[%s DEBUG]: ", prefix),
 		log.Ldate|log.Ltime|log.Lshortfile)
 
-	if !Verbose {
+	if Verbose < 1 {
 		logger.Warning.SetOutput(ioutil.Discard)
-		logger.Trace.SetOutput(ioutil.Discard)
 		logger.Debug.SetOutput(ioutil.Discard)
+	}
+	if Verbose < 2 {
+		logger.Trace.SetOutput(ioutil.Discard)
 	}
 	return
 }

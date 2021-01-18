@@ -21,7 +21,7 @@ var options = &struct {
 	monitorAddr string
 	rpcPort     string
 	logDir      string
-	verboseFlag bool
+	verbose     int
 	cpuProfile  bool
 	memProfile  bool
 }{}
@@ -33,10 +33,10 @@ type Config struct {
 
 func init() {
 	flag.StringVar(&options.configFile, "c", "config.yml", "config file path")
-	flag.StringVar(&options.monitorAddr, "monitor", "", "monitor rpc server address")
+	flag.StringVar(&options.monitorAddr, "monitor", "", "monitor rpc server address, empty for standalone mode")
 	flag.StringVar(&options.rpcPort, "rpcp", "2020", "agent's rpc port")
 	flag.StringVar(&options.logDir, "l", "logs", "log directory")
-	flag.BoolVar(&options.verboseFlag, "v", false, "add TRACE/WARNING logging if enabled")
+	flag.IntVar(&options.verbose, "v", 0, util.VerboseDescription)
 	flag.BoolVar(&options.cpuProfile, "cpuprof", false, "enable cpu profile")
 	flag.BoolVar(&options.memProfile, "memprof", false, "enable mem profile")
 }
@@ -71,8 +71,8 @@ func main() {
 		}
 	}
 
-	util.Verbose = options.verboseFlag
-	util.LogFile = path.Join(options.logDir, "runtime.log")
+	util.Verbose = options.verbose
+	util.LogFile = path.Join(options.logDir, "agent.log")
 
 	// load config content
 	content, err := config.LoadMapStrFromYamlFile(options.configFile)

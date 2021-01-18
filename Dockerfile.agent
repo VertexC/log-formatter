@@ -2,7 +2,8 @@ FROM centos:7
 RUN mkdir /app 
 WORKDIR /app/
 ENV MONITOR=""
-ENV CONFIG_FILE=""
+ENV CONFIG_FILE="config.yml"
+ENV VERBOSE="0"
 ENV RPC_PORT="2020"
 COPY agent-app /app/agent-app
-ENTRYPOINT ./agent-app "-c=${CONFIG_FILE}" "-monitor=${MONITOR}" "-rpcp=${RPC_PORT}"
+ENTRYPOINT ./agent-app "-c=${CONFIG_FILE}" "-monitor=${MONITOR}" "-rpcp=${RPC_PORT}" "-v=${VERBOSE}"
