@@ -28,6 +28,7 @@ func LoadPlugin(url string) (*plugin.Plugin, error) {
 		defer resp.Body.Close()
 		filePath := "tmp.so"
 		out, err := os.Create(filePath)
+		defer os.Remove(filePath)
 		_, err = io.Copy(out, resp.Body)
 		p, err := plugin.Open(filePath)
 		return p, err
