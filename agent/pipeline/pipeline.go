@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/VertexC/log-formatter/agent/pipeline/formatter"
+	"github.com/VertexC/log-formatter/agent/pipeline/protocol"
 	"github.com/VertexC/log-formatter/config"
 	"github.com/VertexC/log-formatter/connector"
 	"github.com/VertexC/log-formatter/util"
@@ -17,7 +17,7 @@ type worker struct {
 	logger *util.Logger
 	// TODO: move labelling to proper component of log-formatter
 	labels     map[string]string
-	formatters []formatter.Formatter
+	formatters []protocol.Formatter
 }
 
 type PipelineConfig struct {
@@ -76,7 +76,7 @@ func (agent *PipelineAgent) SetConfig(content interface{}) error {
 	pipeline.done = make(chan struct{})
 
 	for i := 0; i < config.Worker; i++ {
-		fmts := []formatter.Formatter{}
+		fmts := []protocol.Formatter{}
 		for _, c := range formatterCfgs {
 			fmt, err := NewFormatter(c)
 			if err != nil {

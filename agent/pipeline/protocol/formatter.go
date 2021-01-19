@@ -1,4 +1,4 @@
-package formatter
+package protocol
 
 type Formatter interface {
 	Format(map[string]interface{}) (map[string]interface{}, error)

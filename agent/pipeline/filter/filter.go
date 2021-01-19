@@ -5,7 +5,7 @@ import (
 	"regexp"
 
 	"github.com/VertexC/log-formatter/agent/pipeline"
-	"github.com/VertexC/log-formatter/agent/pipeline/formatter"
+	"github.com/VertexC/log-formatter/agent/pipeline/protocol"
 	"github.com/VertexC/log-formatter/util"
 )
 
@@ -27,7 +27,7 @@ func init() {
 	pipeline.Register("filter", New)
 }
 
-func New(content interface{}) (formatter.Formatter, error) {
+func New(content interface{}) (protocol.Formatter, error) {
 	contentMapStr, ok := content.(map[string]interface{})
 	if !ok {
 		return nil, fmt.Errorf("Failed to convert config to MapStr")
