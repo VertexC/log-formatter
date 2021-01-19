@@ -6,7 +6,10 @@
 
 ## Usage and Example
 ### Standalone Agent
-### With Monitor
+
+### Agent Plugin
+Go now supports loading and symbol resolution of Go [plugins](https://golang.org/pkg/plugin).
+### Monitor
 
 ## Docker
 Docker images of `agent` and `monitor` are available on [docker hub](https://hub.docker.com/r/formatter).

@@ -5,12 +5,12 @@ import (
 )
 
 func init() {
-	pipeline.Register("forwarder", NewForwarder)
+	pipeline.Register("forwarder", New)
 }
 
 type Forwarder struct{}
 
-func NewForwarder(content interface{}) (pipeline.Formatter, error) {
+func New(content interface{}) (pipeline.Formatter, error) {
 	f := &Forwarder{}
 	return f, nil
 }

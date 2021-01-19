@@ -23,10 +23,10 @@ type Filter struct {
 }
 
 func init() {
-	pipeline.Register("filter", NewFilter)
+	pipeline.Register("filter", New)
 }
 
-func NewFilter(content interface{}) (pipeline.Formatter, error) {
+func New(content interface{}) (pipeline.Formatter, error) {
 	contentMapStr, ok := content.(map[string]interface{})
 	if !ok {
 		return nil, fmt.Errorf("Failed to convert config to MapStr")

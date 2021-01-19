@@ -54,15 +54,43 @@ func (agent *InputAgent) SetConfig(content interface{}) error {
 		return fmt.Errorf("Cannot have multiple input targets.")
 	}
 	for target, val := range contentMapStr {
+		var (
+			input Input
+			err   error
+		)
 		if factory, ok := registry[target]; ok {
-			input, err := factory(val)
-			if err == nil {
-				agent.input = input
-				return nil
-			}
+			input, err = factory(val)
+		} else if util.IsSoFile(target) {
+			input, err = loadInputPlugin(target, val)
+		} else {
+			continue
+		}
+		if err == nil {
+			agent.input = input
+			return nil
 		}
 	}
 	return fmt.Errorf("Failed to creat any input target")
+}
+
+func loadInputPlugin(url string, content interface{}) (Input, error) {
+	p, err := util.LoadPlugin(url)
+	if err != nil {
+		return nil, fmt.Errorf("Could not load plugin from url %s: %s", url, err)
+	}
+	newFunc, err := p.Lookup("New")
+	if err != nil {
+		return nil, fmt.Errorf("could not find New function in %s: %s", url, err)
+	}
+	f, ok := newFunc.(Factory)
+	if !ok {
+		return nil, fmt.Errorf("`New` func in %s doesn't implement input interface", url)
+	}
+	instance, err := f(content)
+	if err != nil {
+		return nil, err
+	}
+	return instance, nil
 }
 
 func (agent *InputAgent) Run() {

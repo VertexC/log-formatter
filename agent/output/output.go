@@ -54,15 +54,43 @@ func (agent *OutputAgent) SetConfig(content interface{}) error {
 		return fmt.Errorf("Cannot have multiple output targets.")
 	}
 	for target, val := range contentMapStr {
+		var (
+			output Output
+			err    error
+		)
 		if factory, ok := registry[target]; ok {
-			output, err := factory(val)
-			if err == nil {
-				agent.output = output
-				return nil
-			}
+			output, err = factory(val)
+		} else if util.IsSoFile(target) {
+			output, err = loadOutputPlugin(target, val)
+		} else {
+			continue
+		}
+		if err == nil {
+			agent.output = output
+			return nil
 		}
 	}
 	return fmt.Errorf("Failed to creat any output target")
+}
+
+func loadOutputPlugin(url string, content interface{}) (Output, error) {
+	p, err := util.LoadPlugin(url)
+	if err != nil {
+		return nil, fmt.Errorf("Could not load plugin from url %s: %s", url, err)
+	}
+	newFunc, err := p.Lookup("New")
+	if err != nil {
+		return nil, fmt.Errorf("could not find New function in %s: %s", url, err)
+	}
+	f, ok := newFunc.(Factory)
+	if !ok {
+		return nil, fmt.Errorf("`New` func in %s doesn't implement output interface", url)
+	}
+	instance, err := f(content)
+	if err != nil {
+		return nil, err
+	}
+	return instance, nil
 }
 
 func (agent *OutputAgent) Run() {

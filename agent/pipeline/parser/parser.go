@@ -31,11 +31,11 @@ type Parser struct {
 }
 
 func init() {
-	pipeline.Register("parser", NewParser)
+	pipeline.Register("parser", New)
 }
 
 // TODO: finish regexpr compile jobs while new parser
-func NewParser(content interface{}) (pipeline.Formatter, error) {
+func New(content interface{}) (pipeline.Formatter, error) {
 	contentMapStr, ok := content.(map[string]interface{})
 	if !ok {
 		return nil, fmt.Errorf("Failed to convert config to MapStr")

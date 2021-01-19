@@ -45,9 +45,32 @@ func NewFormatter(content interface{}) (Formatter, error) {
 	}
 	for name, val := range contentMapStr {
 		if factory, ok := registry[name]; ok {
-			output, err := factory(val)
-			return output, err
+			formatter, err := factory(val)
+			return formatter, err
+		} else if util.IsSoFile(name) {
+			formatter, err := loadFormatterPlugin(name, val)
+			return formatter, err
 		}
 	}
-	return nil, fmt.Errorf("Failed to creat any output target")
+	return nil, fmt.Errorf("Failed to creat any formatter target")
+}
+
+func loadFormatterPlugin(url string, content interface{}) (Formatter, error) {
+	p, err := util.LoadPlugin(url)
+	if err != nil {
+		return nil, fmt.Errorf("Could not load plugin from url %s: %s", url, err)
+	}
+	newFunc, err := p.Lookup("New")
+	if err != nil {
+		return nil, fmt.Errorf("could not find New function in %s: %s", url, err)
+	}
+	f, ok := newFunc.(Factory)
+	if !ok {
+		return nil, fmt.Errorf("`New` func in %s doesn't implement formatter interface", url)
+	}
+	instance, err := f(content)
+	if err != nil {
+		return nil, err
+	}
+	return instance, nil
 }
