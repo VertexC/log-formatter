@@ -65,7 +65,9 @@ func (agent *InputAgent) SetConfig(content interface{}) error {
 		} else {
 			continue
 		}
-		if err == nil {
+		if err != nil {
+			return err
+		} else {
 			agent.input = input
 			return nil
 		}

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/Shopify/sarama"
 	"github.com/VertexC/log-formatter/agent/output"
+	"github.com/VertexC/log-formatter/agent/output/protocol"
 	"github.com/VertexC/log-formatter/config"
 	"github.com/VertexC/log-formatter/util"
 )
@@ -30,7 +31,7 @@ func init() {
 	}
 }
 
-func NewKafkaOutput(content interface{}) (output.Output, error) {
+func NewKafkaOutput(content interface{}) (protocol.Output, error) {
 	configMapStr, ok := content.(map[string]interface{})
 	if !ok {
 		return nil, fmt.Errorf("Failed to get mapStr for Kafka Output")

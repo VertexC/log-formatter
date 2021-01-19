@@ -3,22 +3,17 @@ package output
 import (
 	"fmt"
 
+	"github.com/VertexC/log-formatter/agent/output/protocol"
 	"github.com/VertexC/log-formatter/connector"
 	"github.com/VertexC/log-formatter/util"
 )
 
-type Output interface {
-	Run()
-	// Send single doc to output
-	Send(doc map[string]interface{})
-}
-
 type OutputAgent struct {
 	conn   *connector.Connector
-	output Output
+	output protocol.Output
 }
 
-type Factory = func(interface{}) (Output, error)
+type Factory = func(interface{}) (protocol.Output, error)
 
 var registry = make(map[string]Factory)
 var logger = util.NewLogger("OUTPUT")
@@ -55,7 +50,7 @@ func (agent *OutputAgent) SetConfig(content interface{}) error {
 	}
 	for target, val := range contentMapStr {
 		var (
-			output Output
+			output protocol.Output
 			err    error
 		)
 		if factory, ok := registry[target]; ok {
@@ -65,7 +60,9 @@ func (agent *OutputAgent) SetConfig(content interface{}) error {
 		} else {
 			continue
 		}
-		if err == nil {
+		if err != nil {
+			return err
+		} else {
 			agent.output = output
 			return nil
 		}
@@ -73,7 +70,7 @@ func (agent *OutputAgent) SetConfig(content interface{}) error {
 	return fmt.Errorf("Failed to creat any output target")
 }
 
-func loadOutputPlugin(url string, content interface{}) (Output, error) {
+func loadOutputPlugin(url string, content interface{}) (protocol.Output, error) {
 	p, err := util.LoadPlugin(url)
 	if err != nil {
 		return nil, fmt.Errorf("Could not load plugin from url %s: %s", url, err)
