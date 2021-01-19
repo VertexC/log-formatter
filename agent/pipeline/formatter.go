@@ -3,6 +3,7 @@ package pipeline
 import (
 	"fmt"
 
+	"github.com/VertexC/log-formatter/agent/pipeline/formatter"
 	"github.com/VertexC/log-formatter/util"
 )
 
@@ -11,11 +12,7 @@ type Label struct {
 	Val string `yaml: "val"`
 }
 
-type Formatter interface {
-	Format(map[string]interface{}) (map[string]interface{}, error)
-}
-
-type Factory = func(interface{}) (Formatter, error)
+type Factory = func(interface{}) (formatter.Formatter, error)
 
 var registry = make(map[string]Factory)
 var logger = util.NewLogger("PIPLINE")
@@ -38,7 +35,7 @@ func Register(name string, factory Factory) error {
 	return nil
 }
 
-func NewFormatter(content interface{}) (Formatter, error) {
+func NewFormatter(content interface{}) (formatter.Formatter, error) {
 	contentMapStr, ok := content.(map[string]interface{})
 	if !ok {
 		return nil, fmt.Errorf("Cannot convert given formatter config to mapStr")
@@ -55,7 +52,7 @@ func NewFormatter(content interface{}) (Formatter, error) {
 	return nil, fmt.Errorf("Failed to creat any formatter target")
 }
 
-func loadFormatterPlugin(url string, content interface{}) (Formatter, error) {
+func loadFormatterPlugin(url string, content interface{}) (formatter.Formatter, error) {
 	p, err := util.LoadPlugin(url)
 	if err != nil {
 		return nil, fmt.Errorf("Could not load plugin from url %s: %s", url, err)

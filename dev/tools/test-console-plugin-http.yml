@@ -1,0 +1,7 @@
+input:
+  console:
+output:
+  console:
+pipeline:
+  formatters:
+    - https://raw.githubusercontent.com/VertexC/log-formatter/master/dev/tools/forwarder.so:

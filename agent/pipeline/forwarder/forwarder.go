@@ -2,6 +2,7 @@ package forward
 
 import (
 	"github.com/VertexC/log-formatter/agent/pipeline"
+	"github.com/VertexC/log-formatter/agent/pipeline/formatter"
 )
 
 func init() {
@@ -10,7 +11,7 @@ func init() {
 
 type Forwarder struct{}
 
-func New(content interface{}) (pipeline.Formatter, error) {
+func New(content interface{}) (formatter.Formatter, error) {
 	f := &Forwarder{}
 	return f, nil
 }

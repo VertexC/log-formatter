@@ -10,13 +10,17 @@ import (
 )
 
 // IsSoFile check if a given name has .so in the end
-func IsSoFile(name string) bool {
+func IsSoFile(url string) bool {
 	r := regexp.MustCompile("^*.so$")
-	return r.MatchString(name)
+	return r.MatchString(url)
+}
+
+func IsHttp(url string) bool {
+	return strings.HasPrefix(url, "https://") || strings.HasPrefix(url, "http://")
 }
 
 func LoadPlugin(url string) (*plugin.Plugin, error) {
-	if strings.HasPrefix(url, "https://") || strings.HasPrefix(url, "http://") {
+	if IsHttp(url) {
 		resp, err := http.Get(url)
 		if err != nil {
 			return nil, err

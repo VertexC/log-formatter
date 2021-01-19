@@ -3,6 +3,8 @@ package config
 import (
 	"fmt"
 	"io/ioutil"
+	"net/http"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -36,8 +38,22 @@ func (c *ConfigBase) GetMapStr(field string) (map[string]interface{}, error) {
 }
 
 //  LoadMapStrFromYamlFile load content from yaml file and unmarhsal it
-func LoadMapStrFromYamlFile(file string) (map[string]interface{}, error) {
-	data, err := ioutil.ReadFile(file)
+func LoadMapStrFromYamlFile(url string) (map[string]interface{}, error) {
+	if strings.HasPrefix(url, "https://") || strings.HasPrefix(url, "http://") {
+		resp, err := http.Get(url)
+		if err != nil {
+			return nil, fmt.Errorf("Frailed to get config from %s: %s", url, err)
+		}
+		defer resp.Body.Close()
+		data, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return nil, fmt.Errorf("Frailed to get config from %s: %s", url, err)
+		}
+		config, err := LoadMapStrFromYamlBytes(data)
+		return config, err
+	}
+	// other wise, load from local file
+	data, err := ioutil.ReadFile(url)
 	if err != nil {
 		return nil, err
 	}
