@@ -1,4 +1,4 @@
-package console
+package main
 
 import (
 	"bufio"
@@ -6,19 +6,14 @@ import (
 	"os"
 	"time"
 
-	"github.com/VertexC/log-formatter/agent/input"
 	"github.com/VertexC/log-formatter/agent/input/protocol"
 )
-
-func init() {
-	input.Register("console", NewConsole)
-}
 
 type Console struct {
 	reader *bufio.Reader
 }
 
-func NewConsole(content interface{}) (protocol.Input, error) {
+func New(content interface{}) (protocol.Input, error) {
 	console := &Console{
 		reader: bufio.NewReader(os.Stdin),
 	}

@@ -3,21 +3,17 @@ package input
 import (
 	"fmt"
 
+	"github.com/VertexC/log-formatter/agent/input/protocol"
 	"github.com/VertexC/log-formatter/connector"
 	"github.com/VertexC/log-formatter/util"
 )
 
-type Input interface {
-	Emit() map[string]interface{}
-	Run()
-}
-
 type InputAgent struct {
 	conn  *connector.Connector
-	input Input
+	input protocol.Input
 }
 
-type Factory = func(interface{}) (Input, error)
+type Factory = func(interface{}) (protocol.Input, error)
 
 var registry = make(map[string]Factory)
 var logger = util.NewLogger("INPUT")
@@ -55,7 +51,7 @@ func (agent *InputAgent) SetConfig(content interface{}) error {
 	}
 	for target, val := range contentMapStr {
 		var (
-			input Input
+			input protocol.Input
 			err   error
 		)
 		if factory, ok := registry[target]; ok {
@@ -75,7 +71,7 @@ func (agent *InputAgent) SetConfig(content interface{}) error {
 	return fmt.Errorf("Failed to creat any input target")
 }
 
-func loadInputPlugin(url string, content interface{}) (Input, error) {
+func loadInputPlugin(url string, content interface{}) (protocol.Input, error) {
 	p, err := util.LoadPlugin(url)
 	if err != nil {
 		return nil, fmt.Errorf("Could not load plugin from url %s: %s", url, err)

@@ -1,5 +1,5 @@
 input:
-  console:
+  /Users/bchen/bowenc/goProj/src/github.com/VertexC/log-formatter/dev/tools/console-input.so:
 output:
   /Users/bchen/bowenc/goProj/src/github.com/VertexC/log-formatter/dev/tools/console-output.so:
 pipeline:

@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/VertexC/log-formatter/agent/input"
+	"github.com/VertexC/log-formatter/agent/input/protocol"
 	"github.com/VertexC/log-formatter/config"
 	"github.com/VertexC/log-formatter/util"
 
@@ -52,7 +53,7 @@ func init() {
 	input.Register("kafka", NewKafkaInput)
 }
 
-func NewKafkaInput(content interface{}) (input.Input, error) {
+func NewKafkaInput(content interface{}) (protocol.Input, error) {
 	configMapStr, ok := content.(map[string]interface{})
 	if !ok {
 		return nil, fmt.Errorf("Failed to get mapStr from config")
