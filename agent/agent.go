@@ -12,6 +12,7 @@ const (
 
 type Agent interface {
 	Run()
+	Stop()
 	SetConnector(*connector.Connector)
 	SetConfig(interface{}) error
 }

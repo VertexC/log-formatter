@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/VertexC/log-formatter/agent/pipeline/protocol"
 	"github.com/VertexC/log-formatter/config"
@@ -101,6 +102,22 @@ func (agent *PipelineAgent) Run() {
 	go agent.pipeline.run()
 }
 
+func (agent *PipelineAgent) Stop() {
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	defer cancel()
+	go func() {
+		defer wg.Done()
+		for {
+			if ctx.Err() != nil || len(agent.conn.InGate.GetCh()) == 0 {
+				return
+			}
+		}
+	}()
+	wg.Wait()
+}
+
 func (agent *PipelineAgent) ChangeConfig(content interface{}) error {
 	pipelineOld := agent.pipeline
 	// if cannot create new pipeline from config, continue to run
@@ -108,11 +125,15 @@ func (agent *PipelineAgent) ChangeConfig(content interface{}) error {
 		return err
 	}
 	// new piepline has been created, stop the old pipeline
-	pipelineOld.cancel()
-	<-pipelineOld.done
+	pipelineOld.stop()
 	logger.Info.Printf("Previous pipeline has stopped, start to run new pipeline\n")
 	go agent.pipeline.run()
 	return nil
+}
+
+func (pipeline *Pipeline) stop() {
+	pipeline.cancel()
+	<-pipeline.done
 }
 
 func (pipeline *Pipeline) run() {

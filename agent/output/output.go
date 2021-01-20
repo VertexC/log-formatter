@@ -98,3 +98,7 @@ func (agent *OutputAgent) Run() {
 		}
 	}()
 }
+
+func (agent *OutputAgent) Stop() {
+
+}
