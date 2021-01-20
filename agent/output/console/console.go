@@ -20,6 +20,8 @@ func NewConsole(content interface{}) (protocol.Output, error) {
 
 func (console *Console) Run() {}
 
+func (console *Console) Stop() {}
+
 func (console *Console) Send(doc map[string]interface{}) {
 	fmt.Printf("%+v\n", doc)
 }

@@ -1,13 +1,18 @@
 package kafka
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/Shopify/sarama"
+	"sync"
+	"time"
+
 	"github.com/VertexC/log-formatter/agent/output"
 	"github.com/VertexC/log-formatter/agent/output/protocol"
 	"github.com/VertexC/log-formatter/config"
 	"github.com/VertexC/log-formatter/util"
+
+	"github.com/Shopify/sarama"
 )
 
 type KafkaConfig struct {
@@ -109,6 +114,22 @@ func (output *KafkaOutput) Run() {
 		}
 		logger.Trace.Printf("Partition: %d Offset: %d", p, o)
 	}
+}
+
+func (output *KafkaOutput) Stop() {
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	defer cancel()
+	go func() {
+		defer wg.Done()
+		for {
+			if ctx.Err() != nil || len(output.docCh) == 0 {
+				return
+			}
+		}
+	}()
+	wg.Wait()
 }
 
 func (output *KafkaOutput) Send(doc map[string]interface{}) {
