@@ -99,3 +99,8 @@ func (agent *InputAgent) Run() {
 		}
 	}()
 }
+
+func (agent *InputAgent) Stop() {
+	agent.input.Stop()
+	agent.conn.InGate.Put(util.EndDoc())
+}

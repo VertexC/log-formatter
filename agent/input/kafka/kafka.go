@@ -34,14 +34,6 @@ type KafkaConfig struct {
 	Worker int `yaml:"worker"`
 }
 
-type worker struct {
-	consumer *Consumer
-	client   sarama.ConsumerGroup
-	topic    string
-	logger   *util.Logger
-	docCh    chan map[string]interface{}
-}
-
 type KafkaInput struct {
 	logger  *util.Logger
 	workers []*worker
@@ -115,17 +107,22 @@ func NewKafkaInput(content interface{}) (protocol.Input, error) {
 			saramaCfg.Consumer.Offsets.Initial = sarama.OffsetOldest
 		}
 
-		// FIXME:
 		client, err := sarama.NewConsumerGroup(config.Brokers, config.GroupName, saramaCfg)
 		if err != nil {
 			return nil, fmt.Errorf("Error creating consumer group client: %v", err)
 		}
+
+		wg := &sync.WaitGroup{}
+		ctx, cancel := context.WithCancel(context.Background())
 		input.workers = append(input.workers,
 			&worker{
 				consumer: consumer,
 				client:   client,
 				topic:    config.Topic,
 				logger:   input.logger,
+				ctx:      ctx,
+				cancel:   cancel,
+				wg:       wg,
 			})
 	}
 	return input, nil
@@ -133,49 +130,19 @@ func NewKafkaInput(content interface{}) (protocol.Input, error) {
 
 func (input *KafkaInput) Run() {
 	for _, worker := range input.workers {
-		go worker.Run()
+		go worker.run()
+	}
+}
+
+func (input *KafkaInput) Stop() {
+	input.logger.Info.Printf("Stop kafka input")
+	for _, worker := range input.workers {
+		worker.stop()
 	}
 }
 
 func (input *KafkaInput) Emit() map[string]interface{} {
 	return <-input.docCh
-}
-
-func (w *worker) Run() {
-	ctx, cancel := context.WithCancel(context.Background())
-	wg := &sync.WaitGroup{}
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		for {
-			// `Consume` should be called inside an infinite loop, when a
-			// server-side rebalance happens, the consumer session will need to be
-			// recreated to get the new claims
-			topics := []string{w.topic}
-			if err := w.client.Consume(ctx, topics, w.consumer); err != nil {
-				log.Panicf("Error from consumer: %v", err)
-			}
-			// check if context was cancelled, signaling that the consumer should stop
-			if ctx.Err() != nil {
-				return
-			}
-			w.consumer.ready = make(chan bool)
-		}
-	}()
-
-	<-w.consumer.ready // Await till the consumer has been set up
-	w.logger.Info.Println("Sarama consumer up and running!...")
-
-	select {
-	case <-ctx.Done():
-		w.logger.Info.Println("terminating: context cancelled")
-	}
-	cancel()
-	wg.Wait()
-	if err := w.client.Close(); err != nil {
-		w.logger.Warning.Printf("Error closing client: %v", err)
-	}
-	w.logger.Info.Println("Sarama consumer end!")
 }
 
 // Setup is run at the beginning of a new session, before ConsumeClaim

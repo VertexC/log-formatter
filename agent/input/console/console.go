@@ -33,3 +33,5 @@ func (console *Console) Emit() map[string]interface{} {
 	text, _ := console.reader.ReadString('\n')
 	return map[string]interface{}{"message": text}
 }
+
+func (console *Console) Stop() {}
