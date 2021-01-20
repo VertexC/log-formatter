@@ -60,14 +60,13 @@ func NewKafkaOutput(content interface{}) (protocol.Output, error) {
 		fmt.Errorf("Failed to convert <broker> field to <string>")
 	}
 	if val, ok := configMapStr["topic"].(string); ok {
-		config.Broker = val
+		config.Topic = val
 	} else {
 		fmt.Errorf("Failed to convert <topic> field to <string>")
 	}
 
 	// set log
 	logger := util.NewLogger("Output_Kafka")
-	sarama.Logger = logger.Trace
 
 	// producer config
 	saramCfg := sarama.NewConfig()
@@ -98,12 +97,13 @@ func (output *KafkaOutput) Run() {
 	}
 
 	for doc := range output.docCh {
+		logger.Debug.Printf("%+v\n", doc)
 		data, err := json.Marshal(doc)
 		if err != nil {
 			logger.Error.Printf("Failed to parse json from %+v with err %s", doc, err)
 		}
 		message := string(data)
-		// publish wi	thout goroutene
+		// publish without goroutene
 		msg := &sarama.ProducerMessage{
 			Topic: output.config.Topic,
 			Value: sarama.StringEncoder(message),
@@ -117,6 +117,7 @@ func (output *KafkaOutput) Run() {
 }
 
 func (output *KafkaOutput) Stop() {
+	output.logger.Info.Printf("Try to stop kafka output\n")
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	wg := sync.WaitGroup{}
 	wg.Add(1)
@@ -130,8 +131,10 @@ func (output *KafkaOutput) Stop() {
 		}
 	}()
 	wg.Wait()
+	output.logger.Info.Printf("kafka output stopped\n")
 }
 
 func (output *KafkaOutput) Send(doc map[string]interface{}) {
+	output.logger.Debug.Printf("%+v\n", doc)
 	output.docCh <- doc
 }

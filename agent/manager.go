@@ -77,6 +77,15 @@ func (manager *AgentsManager) Run() {
 	go manager.StartHearBeat()
 }
 
+func (manager *AgentsManager) Stop() {
+	manager.logger.Info.Printf("Try to stop all agents")
+	// the order has to be input->pipeline->output
+	manager.agents[Input].Stop()
+	manager.agents[Pipeline].Stop()
+	manager.agents[Output].Stop()
+	manager.logger.Info.Printf("All agents stopped")
+}
+
 func (manager *AgentsManager) SetConfig(content interface{}) error {
 	contentMapStr, ok := content.(map[string]interface{})
 	if !ok {

@@ -15,10 +15,9 @@ type Label struct {
 type Factory = func(interface{}) (protocol.Formatter, error)
 
 var registry = make(map[string]Factory)
-var logger = util.NewLogger("PIPLINE")
 
 func Register(name string, factory Factory) error {
-	logger.Info.Printf("Registering formatter <%s>\n", name)
+	util.UseLog(TAG).Info.Printf("Registering formatter <%s>\n", name)
 	if name == "" {
 		return fmt.Errorf("Error registering formatter: name cannot be empty")
 	}
@@ -30,7 +29,7 @@ func Register(name string, factory Factory) error {
 	}
 
 	registry[name] = factory
-	logger.Info.Printf("Successfully registered formatter <%s>\n", name)
+	util.UseLog(TAG).Info.Printf("Successfully registered formatter <%s>\n", name)
 
 	return nil
 }

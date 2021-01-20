@@ -28,6 +28,16 @@ type Logger struct {
 	Debug   *log.Logger
 }
 
+var LoggerMap map[string]*Logger
+
+func UseLog(prefix string) *Logger {
+	logger, ok := LoggerMap[prefix]
+	if !ok {
+		logger = NewLogger(prefix)
+	}
+	return logger
+}
+
 func NewLogger(prefix string) (logger *Logger) {
 	logger = new(Logger)
 	stdoutWriters := []io.Writer{os.Stdout}
@@ -57,10 +67,11 @@ func NewLogger(prefix string) (logger *Logger) {
 		fmt.Sprintf("[%s WARNING]: ", prefix),
 		log.Ldate|log.Ltime|log.Lshortfile)
 
-	logger.Debug = log.New(os.Stdout,
+	logger.Debug = log.New(io.MultiWriter(stdoutWriters...),
 		fmt.Sprintf("[%s DEBUG]: ", prefix),
 		log.Ldate|log.Ltime|log.Lshortfile)
 
+	log.Printf("Set verbose level at %d", Verbose)
 	if Verbose < 1 {
 		logger.Warning.SetOutput(ioutil.Discard)
 		logger.Debug.SetOutput(ioutil.Discard)

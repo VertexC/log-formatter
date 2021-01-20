@@ -91,7 +91,7 @@ func loadOutputPlugin(url string, content interface{}) (protocol.Output, error) 
 }
 
 func (agent *OutputAgent) Run() {
-	agent.output.Run()
+	go agent.output.Run()
 	go func() {
 		for {
 			agent.output.Send(agent.conn.OutGate.Get())

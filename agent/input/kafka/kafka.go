@@ -72,7 +72,6 @@ func NewKafkaInput(content interface{}) (protocol.Input, error) {
 
 	logger := util.NewLogger("INPUT_KAFKA")
 
-	sarama.Logger = logger.Trace
 	version, err := sarama.ParseKafkaVersion(config.Version)
 	if err != nil {
 		log.Fatalf("Error parsing Kafka version: %v", err)
@@ -102,7 +101,7 @@ func NewKafkaInput(content interface{}) (protocol.Input, error) {
 		saramaCfg.Version = version
 
 		// TODO: what this oldest parameter do?
-		oldest := false
+		oldest := true
 		if oldest {
 			saramaCfg.Consumer.Offsets.Initial = sarama.OffsetOldest
 		}

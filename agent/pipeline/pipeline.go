@@ -29,6 +29,7 @@ type PipelineConfig struct {
 type PipelineAgent struct {
 	conn     *connector.Connector
 	pipeline *Pipeline
+	logger   *util.Logger
 }
 
 type Pipeline struct {
@@ -38,12 +39,13 @@ type Pipeline struct {
 	done    chan struct{}
 }
 
+var TAG = "PIPELINE"
+
 func (agent *PipelineAgent) SetConnector(conn *connector.Connector) {
 	agent.conn = conn
 }
 
 func (agent *PipelineAgent) SetConfig(content interface{}) error {
-	logger := util.NewLogger("pipeline")
 	contentMapStr, ok := content.(map[string]interface{})
 	if !ok {
 		return fmt.Errorf("Failed to convert pipeline config to MapStr")
@@ -72,7 +74,6 @@ func (agent *PipelineAgent) SetConfig(content interface{}) error {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	pipeline := new(Pipeline)
-	pipeline.logger = logger
 	pipeline.cancel = cancel
 	pipeline.done = make(chan struct{})
 
@@ -88,7 +89,7 @@ func (agent *PipelineAgent) SetConfig(content interface{}) error {
 
 		w := &worker{
 			conn:       agent.conn,
-			logger:     logger,
+			logger:     util.UseLog(TAG),
 			formatters: fmts,
 			ctx:        ctx,
 		}
@@ -103,6 +104,7 @@ func (agent *PipelineAgent) Run() {
 }
 
 func (agent *PipelineAgent) Stop() {
+	util.UseLog(TAG).Info.Printf("Try to stop pipeline\n")
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	wg := sync.WaitGroup{}
 	wg.Add(1)
@@ -116,6 +118,7 @@ func (agent *PipelineAgent) Stop() {
 		}
 	}()
 	wg.Wait()
+	util.UseLog(TAG).Info.Printf("pipeline stopped\n")
 }
 
 func (agent *PipelineAgent) ChangeConfig(content interface{}) error {
@@ -126,7 +129,7 @@ func (agent *PipelineAgent) ChangeConfig(content interface{}) error {
 	}
 	// new piepline has been created, stop the old pipeline
 	pipelineOld.stop()
-	logger.Info.Printf("Previous pipeline has stopped, start to run new pipeline\n")
+	util.UseLog(TAG).Info.Printf("Previous pipeline has stopped, start to run new pipeline\n")
 	go agent.pipeline.run()
 	return nil
 }
@@ -148,7 +151,6 @@ func (pipeline *Pipeline) run() {
 
 func (w *worker) run(wg *sync.WaitGroup) {
 	defer func() {
-		w.logger.Debug.Printf("worker end")
 		wg.Done()
 	}()
 	ch := make(chan map[string]interface{})
@@ -166,13 +168,13 @@ func (w *worker) run(wg *sync.WaitGroup) {
 			for k, v := range w.labels {
 				doc[k] = v
 			}
+			w.logger.Debug.Printf("%+v\n", doc)
 			w.conn.OutGate.Put(doc)
 		}
 	}
 	for {
 		select {
 		case doc := <-w.conn.InGate.GetCh():
-			w.logger.Debug.Printf("%+v\n", doc)
 			w.conn.InGate.ConsumedInc()
 			doFormat(doc)
 		case <-w.ctx.Done():
