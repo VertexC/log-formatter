@@ -3,7 +3,7 @@ package main
 import (
 	"flag"
 
-	"github.com/VertexC/log-formatter/monitor"
+	"github.com/VertexC/log-formatter/monitor-be"
 	"github.com/VertexC/log-formatter/util"
 )
 
@@ -32,5 +32,6 @@ func main() {
 		logger.Error.Fatalf("Failed to create App: %s", err)
 	}
 	app.Start()
-	util.ExitControl()
+	handler := func(){}
+	util.SigControl(handler)
 }

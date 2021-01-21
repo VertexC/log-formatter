@@ -6,9 +6,7 @@ import (
 	"fmt"
 	"github.com/pkg/profile"
 	"os"
-	"os/signal"
 	"path"
-	"syscall"
 
 	"github.com/VertexC/log-formatter/agent"
 	"github.com/VertexC/log-formatter/config"
@@ -94,26 +92,5 @@ func main() {
 	}
 	manager.Run()
 
-	sigControl(manager.Stop)
-}
-
-// sigControl provides a block over SIGTERM(Ctrl-C) and SIGINT
-// which provides a graceful shutdown control when pod is killed
-func sigControl(handler func()) struct{} {
-	doneCh := make(chan struct{})
-
-	sigterm := make(chan os.Signal, 1)
-	signal.Notify(sigterm, syscall.SIGINT, syscall.SIGTERM)
-
-	// go routine to catch signal interrupt
-	go func() {
-		select {
-		case <-sigterm:
-			fmt.Println("terminating: via signal")
-			handler()
-			doneCh <- struct{}{}
-		}
-	}()
-
-	return <-doneCh
+	util.SigControl(manager.Stop)
 }
