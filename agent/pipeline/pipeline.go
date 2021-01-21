@@ -6,9 +6,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/VertexC/log-formatter/agent/config"
+	"github.com/VertexC/log-formatter/agent/connector"
 	"github.com/VertexC/log-formatter/agent/pipeline/protocol"
-	"github.com/VertexC/log-formatter/config"
-	"github.com/VertexC/log-formatter/connector"
 	"github.com/VertexC/log-formatter/util"
 )
 

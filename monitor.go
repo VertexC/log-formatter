@@ -32,6 +32,6 @@ func main() {
 		logger.Error.Fatalf("Failed to create App: %s", err)
 	}
 	app.Start()
-	handler := func(){}
+	handler := func() {}
 	util.SigControl(handler)
 }

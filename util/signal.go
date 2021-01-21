@@ -1,10 +1,10 @@
 package util
 
 import (
+	"fmt"
 	"os"
 	"os/signal"
 	"syscall"
-	"fmt"
 )
 
 // SigControl provides a block over SIGTERM(Ctrl-C) and SIGINT

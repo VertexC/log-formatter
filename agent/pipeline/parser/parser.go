@@ -3,9 +3,9 @@ package parser
 import (
 	"fmt"
 
+	"github.com/VertexC/log-formatter/agent/config"
 	"github.com/VertexC/log-formatter/agent/pipeline"
 	"github.com/VertexC/log-formatter/agent/pipeline/protocol"
-	"github.com/VertexC/log-formatter/config"
 	"github.com/VertexC/log-formatter/util"
 )
 

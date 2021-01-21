@@ -1,7 +1,7 @@
 package agent
 
 import (
-	"github.com/VertexC/log-formatter/connector"
+	"github.com/VertexC/log-formatter/agent/connector"
 )
 
 const (

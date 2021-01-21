@@ -7,9 +7,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/VertexC/log-formatter/agent/config"
 	"github.com/VertexC/log-formatter/agent/output"
 	"github.com/VertexC/log-formatter/agent/output/protocol"
-	"github.com/VertexC/log-formatter/config"
 	"github.com/VertexC/log-formatter/util"
 
 	"github.com/Shopify/sarama"

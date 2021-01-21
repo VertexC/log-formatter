@@ -3,8 +3,8 @@ package input
 import (
 	"fmt"
 
+	"github.com/VertexC/log-formatter/agent/connector"
 	"github.com/VertexC/log-formatter/agent/input/protocol"
-	"github.com/VertexC/log-formatter/connector"
 	"github.com/VertexC/log-formatter/util"
 )
 

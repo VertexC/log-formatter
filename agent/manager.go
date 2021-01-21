@@ -6,11 +6,11 @@ import (
 	"net"
 	"time"
 
+	"github.com/VertexC/log-formatter/agent/config"
+	"github.com/VertexC/log-formatter/agent/connector"
 	"github.com/VertexC/log-formatter/agent/input"
 	"github.com/VertexC/log-formatter/agent/output"
 	"github.com/VertexC/log-formatter/agent/pipeline"
-	"github.com/VertexC/log-formatter/config"
-	"github.com/VertexC/log-formatter/connector"
 	agentpb "github.com/VertexC/log-formatter/proto/pkg/agent"
 	ctrpb "github.com/VertexC/log-formatter/proto/pkg/controller"
 	"github.com/VertexC/log-formatter/util"
