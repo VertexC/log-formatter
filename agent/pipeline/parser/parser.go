@@ -6,6 +6,7 @@ import (
 	"github.com/VertexC/log-formatter/agent/config"
 	"github.com/VertexC/log-formatter/agent/pipeline"
 	"github.com/VertexC/log-formatter/agent/pipeline/protocol"
+	"github.com/VertexC/log-formatter/logger"
 	"github.com/VertexC/log-formatter/util"
 )
 
@@ -28,7 +29,7 @@ type ParserConfig struct {
 
 type Parser struct {
 	config ParserConfig
-	logger *util.Logger
+	logger *logger.Logger
 }
 
 func init() {
@@ -53,7 +54,7 @@ func New(content interface{}) (protocol.Formatter, error) {
 	}
 	parser := &Parser{
 		config: config,
-		logger: util.NewLogger("pipeline-parser"),
+		logger: logger.NewLogger("pipeline-parser"),
 	}
 	return parser, nil
 }

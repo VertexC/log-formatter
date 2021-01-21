@@ -11,6 +11,7 @@ import (
 	"github.com/VertexC/log-formatter/agent/input"
 	"github.com/VertexC/log-formatter/agent/output"
 	"github.com/VertexC/log-formatter/agent/pipeline"
+	"github.com/VertexC/log-formatter/logger"
 	agentpb "github.com/VertexC/log-formatter/proto/pkg/agent"
 	ctrpb "github.com/VertexC/log-formatter/proto/pkg/controller"
 	"github.com/VertexC/log-formatter/util"
@@ -28,14 +29,14 @@ type AgentsManager struct {
 	config *AgentsManagerConfig
 	Status agentpb.Status
 	agents map[string]Agent
-	logger *util.Logger
+	logger *logger.Logger
 	// monitor rpc address
 	monitorAddr string
 	rpcPort     string
 }
 
 func NewAgentsManager(monitorAddr string, rpcPort string) (*AgentsManager, error) {
-	logger := util.NewLogger("AgentsManager")
+	logger := logger.NewLogger("AgentsManager")
 
 	conn, err := connector.NewConnector()
 	if err != nil {

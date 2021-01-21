@@ -5,6 +5,7 @@ import (
 
 	"github.com/VertexC/log-formatter/agent/connector"
 	"github.com/VertexC/log-formatter/agent/input/protocol"
+	mylog "github.com/VertexC/log-formatter/logger"
 	"github.com/VertexC/log-formatter/util"
 )
 
@@ -16,7 +17,7 @@ type InputAgent struct {
 type Factory = func(interface{}) (protocol.Input, error)
 
 var registry = make(map[string]Factory)
-var logger = util.NewLogger("INPUT")
+var logger = mylog.NewLogger("INPUT")
 
 func Register(name string, factory Factory) error {
 	logger.Info.Printf("Registering input <%s>\n", name)

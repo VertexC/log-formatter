@@ -6,6 +6,7 @@ import (
 
 	"github.com/VertexC/log-formatter/agent/pipeline"
 	"github.com/VertexC/log-formatter/agent/pipeline/protocol"
+	"github.com/VertexC/log-formatter/logger"
 	"github.com/VertexC/log-formatter/util"
 )
 
@@ -20,7 +21,7 @@ type FilterConfig struct {
 type Filter struct {
 	IncludeRegex []*regexp.Regexp
 	ExcludeRegex []*regexp.Regexp
-	logger       *util.Logger
+	logger       *logger.Logger
 }
 
 func init() {
@@ -38,7 +39,7 @@ func New(content interface{}) (protocol.Formatter, error) {
 	}
 
 	filter := new(Filter)
-	filter.logger = util.NewLogger("filter")
+	filter.logger = logger.NewLogger("filter")
 	if len(config.IncludeFields) > 0 && len(config.ExcludeFields) > 0 {
 		return nil, fmt.Errorf("Cannot use include and exlude at same time")
 	}

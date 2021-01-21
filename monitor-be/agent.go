@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/VertexC/log-formatter/util"
+	"github.com/VertexC/log-formatter/logger"
 )
 
 const HeartbeatInterval = 20
@@ -25,10 +25,10 @@ type Agent struct {
 type AgentsSyncMap struct {
 	agents map[uint64]*Agent
 	lock   sync.RWMutex
-	logger *util.Logger
+	logger *logger.Logger
 }
 
-func NewAgentsSyncMap(logger *util.Logger) *AgentsSyncMap {
+func NewAgentsSyncMap(logger *logger.Logger) *AgentsSyncMap {
 	return &AgentsSyncMap{
 		agents: make(map[uint64]*Agent),
 		logger: logger,

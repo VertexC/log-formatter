@@ -4,7 +4,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/VertexC/log-formatter/util"
+	"github.com/VertexC/log-formatter/logger"
 
 	"github.com/Shopify/sarama"
 )
@@ -13,7 +13,7 @@ type worker struct {
 	consumer *Consumer
 	client   sarama.ConsumerGroup
 	topic    string
-	logger   *util.Logger
+	logger   *logger.Logger
 	docCh    chan map[string]interface{}
 	ctx      context.Context
 	cancel   context.CancelFunc

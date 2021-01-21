@@ -10,7 +10,7 @@ import (
 	"github.com/VertexC/log-formatter/agent/config"
 	"github.com/VertexC/log-formatter/agent/input"
 	"github.com/VertexC/log-formatter/agent/input/protocol"
-	"github.com/VertexC/log-formatter/util"
+	"github.com/VertexC/log-formatter/logger"
 
 	"github.com/Shopify/sarama"
 	"gopkg.in/yaml.v3"
@@ -20,7 +20,7 @@ type Consumer struct {
 	ready  chan bool
 	docCh  chan map[string]interface{}
 	schema string
-	logger *util.Logger
+	logger *logger.Logger
 }
 
 type KafkaConfig struct {
@@ -35,7 +35,7 @@ type KafkaConfig struct {
 }
 
 type KafkaInput struct {
-	logger  *util.Logger
+	logger  *logger.Logger
 	workers []*worker
 	config  KafkaConfig
 	docCh   chan map[string]interface{}
@@ -70,7 +70,7 @@ func NewKafkaInput(content interface{}) (protocol.Input, error) {
 
 	yaml.Unmarshal(data, &config)
 
-	logger := util.NewLogger("INPUT_KAFKA")
+	logger := logger.NewLogger("INPUT_KAFKA")
 
 	version, err := sarama.ParseKafkaVersion(config.Version)
 	if err != nil {

@@ -8,10 +8,11 @@ import (
 	"os"
 	"path"
 
+	"github.com/VertexC/log-formatter/"
 	"github.com/VertexC/log-formatter/agent"
 	"github.com/VertexC/log-formatter/agent/config"
 	_ "github.com/VertexC/log-formatter/agent/include"
-	"github.com/VertexC/log-formatter/util"
+	mylogger "github.com/VertexC/log-formatter/logger"
 )
 
 // Options contains the top level options of log-formatter
@@ -35,13 +36,13 @@ func init() {
 	flag.StringVar(&options.monitorAddr, "monitor", "", "monitor rpc server address, empty for standalone mode")
 	flag.StringVar(&options.rpcPort, "rpcp", "2020", "agent's rpc port")
 	flag.StringVar(&options.logDir, "l", "logs", "log directory")
-	flag.IntVar(&options.verbose, "v", 0, util.VerboseDescription)
+	flag.IntVar(&options.verbose, "v", 0, mylogger.VerboseDescription)
 	flag.BoolVar(&options.cpuProfile, "cpuprof", false, "enable cpu profile")
 	flag.BoolVar(&options.memProfile, "memprof", false, "enable mem profile")
 }
 
 func main() {
-	logger := util.NewLogger("Main")
+	logger := mylogger.NewLogger("Main")
 
 	flag.Parse()
 
@@ -70,8 +71,8 @@ func main() {
 		}
 	}
 
-	util.Verbose = options.verbose
-	util.LogFile = path.Join(options.logDir, "agent.log")
+	mylogger.Verbose = options.verbose
+	mylogger.LogFile = path.Join(options.logDir, "agent.log")
 
 	// load config content
 	content, err := config.LoadMapStrFromYamlFile(options.configFile)

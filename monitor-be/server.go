@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	ctr "github.com/VertexC/log-formatter/controller"
-	"github.com/VertexC/log-formatter/util"
+	"github.com/VertexC/log-formatter/logger"
 
 	"github.com/gin-contrib/static"
 	"github.com/gin-gonic/gin"
@@ -30,7 +30,7 @@ type App struct {
 	agentsMap *AgentsSyncMap
 	ctr       *ctr.Controller
 	hbCh      chan *ctr.HeartBeat
-	logger    *util.Logger
+	logger    *logger.Logger
 }
 
 func CORSMiddleware() gin.HandlerFunc {
@@ -52,7 +52,7 @@ func CORSMiddleware() gin.HandlerFunc {
 
 // NewApp
 func NewApp(rpcPort string, webPort string) (*App, error) {
-	logger := util.NewLogger("monitor-web-server")
+	logger := logger.NewLogger("monitor-web-server")
 
 	router := gin.Default()
 	router.Use(static.Serve("/", static.LocalFile("./build/dist", true)))

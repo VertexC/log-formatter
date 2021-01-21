@@ -10,7 +10,7 @@ import (
 	"github.com/VertexC/log-formatter/agent/config"
 	"github.com/VertexC/log-formatter/agent/output"
 	"github.com/VertexC/log-formatter/agent/output/protocol"
-	"github.com/VertexC/log-formatter/util"
+	"github.com/VertexC/log-formatter/logger"
 
 	"github.com/Shopify/sarama"
 )
@@ -22,7 +22,7 @@ type KafkaConfig struct {
 }
 
 type KafkaOutput struct {
-	logger   *util.Logger
+	logger   *logger.Logger
 	docCh    chan map[string]interface{}
 	producer sarama.SyncProducer
 	config   *KafkaConfig
@@ -66,7 +66,7 @@ func NewKafkaOutput(content interface{}) (protocol.Output, error) {
 	}
 
 	// set log
-	logger := util.NewLogger("Output_Kafka")
+	logger := logger.NewLogger("Output_Kafka")
 
 	// producer config
 	saramCfg := sarama.NewConfig()

@@ -6,6 +6,7 @@ import (
 	"net"
 	"time"
 
+	"github.com/VertexC/log-formatter/logger"
 	agentpb "github.com/VertexC/log-formatter/proto/pkg/agent"
 	ctrpb "github.com/VertexC/log-formatter/proto/pkg/controller"
 	"github.com/VertexC/log-formatter/util"
@@ -24,12 +25,12 @@ type Controller struct {
 	// agent address
 	agent   string
 	RpcPort string
-	logger  *util.Logger
+	logger  *logger.Logger
 	hbCh    chan *HeartBeat
 }
 
 func NewController(port string, hbCh chan *HeartBeat) *Controller {
-	logger := util.NewLogger("controller")
+	logger := logger.NewLogger("controller")
 
 	return &Controller{
 		logger:  logger,

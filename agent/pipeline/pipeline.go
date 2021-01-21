@@ -9,13 +9,14 @@ import (
 	"github.com/VertexC/log-formatter/agent/config"
 	"github.com/VertexC/log-formatter/agent/connector"
 	"github.com/VertexC/log-formatter/agent/pipeline/protocol"
+	"github.com/VertexC/log-formatter/logger"
 	"github.com/VertexC/log-formatter/util"
 )
 
 type worker struct {
 	ctx    context.Context
 	conn   *connector.Connector
-	logger *util.Logger
+	logger *logger.Logger
 	// TODO: move labelling to proper component of log-formatter
 	labels     map[string]string
 	formatters []protocol.Formatter
@@ -29,11 +30,11 @@ type PipelineConfig struct {
 type PipelineAgent struct {
 	conn     *connector.Connector
 	pipeline *Pipeline
-	logger   *util.Logger
+	logger   *logger.Logger
 }
 
 type Pipeline struct {
-	logger  *util.Logger
+	logger  *logger.Logger
 	workers []*worker
 	cancel  context.CancelFunc
 	done    chan struct{}
@@ -89,7 +90,7 @@ func (agent *PipelineAgent) SetConfig(content interface{}) error {
 
 		w := &worker{
 			conn:       agent.conn,
-			logger:     util.UseLog(TAG),
+			logger:     logger.UseLog(TAG),
 			formatters: fmts,
 			ctx:        ctx,
 		}
@@ -104,7 +105,7 @@ func (agent *PipelineAgent) Run() {
 }
 
 func (agent *PipelineAgent) Stop() {
-	util.UseLog(TAG).Info.Printf("Try to stop pipeline\n")
+	logger.UseLog(TAG).Info.Printf("Try to stop pipeline\n")
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	wg := sync.WaitGroup{}
 	wg.Add(1)
@@ -118,7 +119,7 @@ func (agent *PipelineAgent) Stop() {
 		}
 	}()
 	wg.Wait()
-	util.UseLog(TAG).Info.Printf("pipeline stopped\n")
+	logger.UseLog(TAG).Info.Printf("pipeline stopped\n")
 }
 
 func (agent *PipelineAgent) ChangeConfig(content interface{}) error {
@@ -129,7 +130,7 @@ func (agent *PipelineAgent) ChangeConfig(content interface{}) error {
 	}
 	// new piepline has been created, stop the old pipeline
 	pipelineOld.stop()
-	util.UseLog(TAG).Info.Printf("Previous pipeline has stopped, start to run new pipeline\n")
+	logger.UseLog(TAG).Info.Printf("Previous pipeline has stopped, start to run new pipeline\n")
 	go agent.pipeline.run()
 	return nil
 }
