@@ -8,10 +8,10 @@ import (
 	"os"
 	"path"
 
-	"github.com/VertexC/log-formatter/"
 	"github.com/VertexC/log-formatter/agent"
 	"github.com/VertexC/log-formatter/agent/config"
 	_ "github.com/VertexC/log-formatter/agent/include"
+	"github.com/VertexC/log-formatter/util"
 	mylogger "github.com/VertexC/log-formatter/logger"
 )
 
