@@ -4,6 +4,7 @@ import (
 	// output plugins
 	_ "github.com/VertexC/log-formatter/agent/output/console"
 	_ "github.com/VertexC/log-formatter/agent/output/kafka"
+	_ "github.com/VertexC/log-formatter/agent/output/elasticsearch"
 	// input plugins
 	_ "github.com/VertexC/log-formatter/agent/input/console"
 	_ "github.com/VertexC/log-formatter/agent/input/elasticsearch"
