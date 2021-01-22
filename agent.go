@@ -11,8 +11,8 @@ import (
 	"github.com/VertexC/log-formatter/agent"
 	"github.com/VertexC/log-formatter/agent/config"
 	_ "github.com/VertexC/log-formatter/agent/include"
-	"github.com/VertexC/log-formatter/util"
 	mylogger "github.com/VertexC/log-formatter/logger"
+	"github.com/VertexC/log-formatter/util"
 )
 
 // Options contains the top level options of log-formatter

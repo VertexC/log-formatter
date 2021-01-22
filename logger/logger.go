@@ -71,7 +71,6 @@ func NewLogger(prefix string) (logger *Logger) {
 		fmt.Sprintf("[%s DEBUG]: ", prefix),
 		log.Ldate|log.Ltime|log.Lshortfile)
 
-	log.Printf("Set verbose level at %d", Verbose)
 	if Verbose < 1 {
 		logger.Warning.SetOutput(ioutil.Discard)
 		logger.Debug.SetOutput(ioutil.Discard)
