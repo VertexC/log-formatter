@@ -42,13 +42,24 @@ pipeline:
 See tutorial on how to write your own plugin. [TODO:]
 
 **Native Supported Plugins**
-	- Input: console, kafka, es
-    - Output: console, kafka, es
-    - Formatter: parser, filter, forwarder
+- Input: console, kafka, es
+- Output: console, kafka, es
+- Formatter: parser, filter, forwarder
 
 ### Monitor: A stateless Web Server with Gin+Vue
+**Monitor** and **Agent** communicate by grpc.
 
-## Docker
-Docker images of `agent` and `monitor` are available on [docker hub](https://hub.docker.com/r/formatter).
+<img src="doc/monitor.png" alt="monitor" width="500px"/>
 
-## K8S Deployment Example
+Deploy agents with monitor
+```bash
+# agent
+`go run agent.go -c config.yml -monitor <web-rpc-port> -rpcp <agent-rpc-port>   `
+# controller
+`go run monitor.go -rpcp <web-rpc-port> -webp <web-port>
+```
+
+You can try to play around with monitor's web interface by running `docker-compose -f deployment/docker-compose.yaml up`, which will set up a monitor on `localhost:8080` with 10 agents.
+
+### Docker and K8S deployment
+The docker images are available on https://hub.docker.com/u/formatter.
